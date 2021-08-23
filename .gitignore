@@ -1,0 +1,8 @@
+# generated
+**/node_modules
+
+# production
+/build
+
+# misc
+id.json
