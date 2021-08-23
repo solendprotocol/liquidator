@@ -1,0 +1,18 @@
+version: "3.1"
+
+services:
+  # The application image
+  solend-liquidator:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - NETWORK=mainnet # solana network e.g mainnet, devnet
+      - THROTTLE=700 # Throttle not avoid rate limiting
+    secrets:
+      - keypair # secret to encrypte wallet details in container
+
+secrets:
+  keypair:
+    file: ./id.json
