@@ -46,4 +46,4 @@ docker-compose up --build
 
 ## Support
 
-PRs to improve this repo are welcomed! If you need help setting up your liquidator bot, feel free to post your questions in liquidator channel within [Solend's discord server](https://discord.gg/exscEFpB7s).
+PRs to improve this repo are welcomed! If you need help setting up your liquidator bot, feel free to post your questions in the #dev-support channel within [Solend's discord server](https://discord.gg/exscEFpB7s).
