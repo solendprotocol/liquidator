@@ -9,13 +9,8 @@ The Solend liquidator bot identifies underwater obligations to liquidate. Solend
 ## Usage
 
 1. Install [docker-compose](https://docs.docker.com/compose/install/)
-2. Verify you have docker-compose installed by running the following
 
-```
-docker-compose --version
-```
-
-3. Update [file system wallet](https://docs.solana.com/wallet-guide/file-system-wallet) path in docker-compose.yaml.
+2. Update [file system wallet](https://docs.solana.com/wallet-guide/file-system-wallet) path in docker-compose.yaml.
 
 ```
 version: "3.1"
@@ -38,7 +33,7 @@ secrets:
     file: <PATH TO KEYPAIR WALLET THAT WILL BE LIQUIDATING UNDERWATER OBLIGATIONS>
 ```
 
-4. Build and run service
+3. Build and run service
 
 ```
 docker-compose up --build
