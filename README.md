@@ -4,7 +4,7 @@ open-source version of a liquidation bot running against Solend
 
 ## Overview
 
-The Solend liquidator bot identifies underwater obligations to liquidate. Solend awards liquidators a 5% bonus on each liquidation. See [Solend params](https://docs.solend.fi/protocol/parameters) for the most up-to-date parameters on each asset. This repo is intended as a starting point for the Solend community to build liquidator bots.
+The Solend liquidator bot identifies and liquidates overexposed obligations. Solend awards liquidators a 5% bonus on each liquidation. See [Solend params](https://docs.solend.fi/protocol/parameters) for the most up-to-date parameters on each asset. This repo is intended as a starting point for the Solend community to build their liquidator bots.
 
 ## Usage
 
