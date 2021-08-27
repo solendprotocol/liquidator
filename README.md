@@ -7,7 +7,8 @@ open-source version of a liquidation bot running against Solend
 The Solend liquidator bot identifies and liquidates overexposed obligations. Solend awards liquidators a 5% bonus on each liquidation. See [Solend params](https://docs.solend.fi/protocol/parameters) for the most up-to-date parameters on each asset. This repo is intended as a starting point for the Solend community to build their liquidator bots.
 
 ## Usage
-A file system wallet funded with SOL, USDC, ETH and BTC is required to liquidate obligations. Users will need to manually rebalance wallet whenever a token is depleted.
+
+A file system wallet funded with SOL, USDC, ETH, SRM BTC is required to liquidate obligations. Users will need to manually rebalance wallet whenever a token is depleted.
 
 1. Install [docker-compose](https://docs.docker.com/compose/install/)
 
