@@ -9,7 +9,7 @@ services:
       dockerfile: Dockerfile
     environment:
       - NETWORK=mainnet # solana network e.g mainnet, devnet
-      - THROTTLE=1000 # Throttle not avoid rate limiting
+      - THROTTLE=1900 # Throttle not avoid rate limiting
     secrets:
       - keypair # secret to encrypte wallet details in container
 
