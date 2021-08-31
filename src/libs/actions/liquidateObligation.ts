@@ -27,20 +27,25 @@ export const liquidateObligation = async (
 ) => {
   const ixs: TransactionInstruction[] = [];
 
-  lendingMarket.reserves.forEach((reserve) => {
-    const oracleInfo = findWhere(config.oracles.assets, {
-      asset: reserve.asset,
-    });
+  const repayReserve = findWhere(lendingMarket.reserves, { asset: repayTokenSymbol });
+  const withdrawReserve = findWhere(lendingMarket.reserves, { asset: withdrawTokenSymbol });
 
-    // refreshed reserves are required for RefreshObligation
-    const refreshReserveIx = refreshReserveInstruction(
-      new PublicKey(reserve.address),
-      new PublicKey(oracleInfo!.priceAddress),
-      new PublicKey(oracleInfo!.switchboardFeedAddress),
-    );
+  const repayTokenOracle = findWhere(config.oracles.assets, { asset: repayTokenSymbol });
+  const withdrawTokenOracle = findWhere(config.oracles.assets, { asset: withdrawTokenSymbol });
 
-    ixs.push(refreshReserveIx);
-  });
+  // refresh repay reserve
+  ixs.push(refreshReserveInstruction(
+    new PublicKey(repayReserve.address),
+    new PublicKey(repayTokenOracle!.priceAddress),
+    new PublicKey(repayTokenOracle!.switchboardFeedAddress),
+  ));
+
+  // refresh withdraw reserve
+  ixs.push(refreshReserveInstruction(
+    new PublicKey(withdrawReserve.address),
+    new PublicKey(withdrawTokenOracle!.priceAddress),
+    new PublicKey(withdrawTokenOracle!.switchboardFeedAddress),
+  ));
 
   const depositReserves = map(obligation.info.deposits, (deposit) => deposit.depositReserve);
   const borrowReserves = map(obligation.info.borrows, (borrow) => borrow.borrowReserve);
@@ -53,12 +58,6 @@ export const liquidateObligation = async (
   ixs.push(refreshObligationIx);
 
   const repayTokenInfo = getTokenInfo(repayTokenSymbol);
-
-  const repayReserve = findWhere(lendingMarket.reserves, { asset: repayTokenSymbol });
-  const withdrawReserve = findWhere(lendingMarket.reserves, { asset: withdrawTokenSymbol });
-
-  const repayTokenOracle = findWhere(config.oracles.assets, { asset: repayTokenSymbol });
-  const withdrawTokenOracle = findWhere(config.oracles.assets, { asset: withdrawTokenSymbol });
 
   // get account that will be repaying the reserve liquidity
   const repayAccount = await Token.getAssociatedTokenAddress(

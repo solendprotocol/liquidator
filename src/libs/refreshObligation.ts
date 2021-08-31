@@ -26,8 +26,12 @@ export function calculateRefreshedObligation(
   const borrows = [] as Borrow[];
 
   obligation.deposits.forEach((deposit: ObligationCollateral) => {
-    const { price, decimals, symbol } = findWhere(tokensOracle,
+    const tokenOracle = findWhere(tokensOracle,
       { reserveAddress: deposit.depositReserve.toString() });
+    if (!tokenOracle) {
+      throw new Error(`Liquidator outdate - missing token info for ${deposit.depositReserve.toString()}. Please pull latest changes and re-run`);
+    }
+    const { price, decimals, symbol } = tokenOracle;
     const reserve = find(reserves, (r) => r.pubkey.toString() === deposit.depositReserve.toString()).info;
 
     const collateralExchangeRate = getCollateralExchangeRate(reserve);
