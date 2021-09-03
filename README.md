@@ -10,7 +10,7 @@ The Solend liquidator bot identifies and liquidates overexposed obligations. Sol
 
 A file system wallet funded with SOL, USDC, ETH, SRM BTC is required to liquidate obligations. Users will need to manually rebalance wallet whenever a token is depleted.
 
-1. Install [docker-compose](https://docs.docker.com/compose/install/)
+1. Install [docker engine](https://docs.docker.com/get-docker/) and [docker-compose](https://docs.docker.com/compose/install/)
 
 2. Update [file system wallet](https://docs.solana.com/wallet-guide/file-system-wallet) path in docker-compose.yaml.
 

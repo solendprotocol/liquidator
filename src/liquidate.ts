@@ -42,7 +42,7 @@ async function runLiquidator() {
     const allReserves = await getReserves(connection, lendingMarketPubKey);
 
     for (let obligation of allObligations) {
-      if (obligation) {
+      try {
         while (true) {
           const {
             borrowedValue,
@@ -94,26 +94,24 @@ async function runLiquidator() {
 
           // Set super high liquidation amount which acts as u64::MAX as program will only liquidate max
           // 50% val of all borrowed assets.
-          try {
-            await liquidateObligation(
-              connection,
-              payer,
-              U64_MAX,
-              selectedBorrow.symbol,
-              selectedDeposit.symbol,
-              lendingMarkets,
-              obligation,
-            );
-          } catch (err) {
-            console.error(`error liquidating ${obligation.pubkey.toString()}: `, err);
-            break;
-          }
+          await liquidateObligation(
+            connection,
+            payer,
+            U64_MAX,
+            selectedBorrow.symbol,
+            selectedDeposit.symbol,
+            lendingMarkets,
+            obligation,
+          );
 
           const postLiquidationObligation = await connection.getAccountInfo(
             new PublicKey(obligation.pubkey),
           );
           obligation = ObligationParser(obligation.pubkey, postLiquidationObligation!);
         }
+      } catch (err) {
+        console.error(`error liquidating ${obligation.pubkey.toString()}: `, err);
+        break;
       }
     }
 

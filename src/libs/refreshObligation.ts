@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-throw-literal */
 import BigNumber from 'bignumber.js';
 import { findWhere, find } from 'underscore';
 import { Obligation, ObligationCollateral, ObligationLiquidity } from 'models/layouts/obligation';
@@ -26,10 +27,9 @@ export function calculateRefreshedObligation(
   const borrows = [] as Borrow[];
 
   obligation.deposits.forEach((deposit: ObligationCollateral) => {
-    const tokenOracle = findWhere(tokensOracle,
-      { reserveAddress: deposit.depositReserve.toString() });
+    const tokenOracle = findWhere(tokensOracle, { reserveAddress: deposit.depositReserve.toString() });
     if (!tokenOracle) {
-      throw new Error(`Liquidator outdate - missing token info for ${deposit.depositReserve.toString()}. Please pull latest changes and re-run`);
+      throw `Missing token info for reserve ${deposit.depositReserve.toString()}, skipping this obligation. Please pull the latest @solendprotocol/common package.`;
     }
     const { price, decimals, symbol } = tokenOracle;
     const reserve = find(reserves, (r) => r.pubkey.toString() === deposit.depositReserve.toString()).info;
@@ -58,8 +58,12 @@ export function calculateRefreshedObligation(
 
   obligation.borrows.forEach((borrow: ObligationLiquidity) => {
     const borrowAmountWads = new BigNumber(borrow.borrowedAmountWads.toString());
-    const { price, decimals, symbol } = findWhere(tokensOracle,
+    const tokenOracle = findWhere(tokensOracle,
       { reserveAddress: borrow.borrowReserve.toString() });
+    if (!tokenOracle) {
+      throw `Missing token info for reserve ${borrow.borrowReserve.toString()}, skipping this obligation. Please pull the latest @solendprotocol/common package.`;
+    }
+    const { price, decimals, symbol } = tokenOracle;
     const reserve = find(reserves, (r) => r.pubkey.toString() === borrow.borrowReserve.toString()).info;
     const borrowAmountWadsWithInterest = getBorrrowedAmountWadsWithInterest(
       new BigNumber(reserve.liquidity.cumulativeBorrowRateWads.toString()),
