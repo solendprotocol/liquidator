@@ -1,3 +1,4 @@
+/* eslint-disable no-continue */
 /* eslint-disable no-constant-condition */
 /* eslint-disable no-restricted-syntax */
 import {
@@ -111,7 +112,7 @@ async function runLiquidator() {
         }
       } catch (err) {
         console.error(`error liquidating ${obligation.pubkey.toString()}: `, err);
-        break;
+        continue;
       }
     }
 
