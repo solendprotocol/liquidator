@@ -19,7 +19,7 @@ import { config } from 'config';
 export const liquidateObligation = async (
   connection: Connection,
   payer: Account,
-  liquidityAmount: string,
+  liquidityAmount: number,
   repayTokenSymbol: string,
   withdrawTokenSymbol: string,
   lendingMarket: Market,

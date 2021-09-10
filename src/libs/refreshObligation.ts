@@ -63,7 +63,9 @@ export function calculateRefreshedObligation(
     if (!tokenOracle) {
       throw `Missing token info for reserve ${borrow.borrowReserve.toString()}, skipping this obligation. Please pull the latest @solendprotocol/common package.`;
     }
-    const { price, decimals, symbol } = tokenOracle;
+    const {
+      price, decimals, symbol, mintAddress,
+    } = tokenOracle;
     const reserve = find(reserves, (r) => r.pubkey.toString() === borrow.borrowReserve.toString()).info;
     const borrowAmountWadsWithInterest = getBorrrowedAmountWadsWithInterest(
       new BigNumber(reserve.liquidity.cumulativeBorrowRateWads.toString()),
@@ -80,6 +82,7 @@ export function calculateRefreshedObligation(
     borrows.push({
       borrowReserve: borrow.borrowReserve,
       borrowAmountWads: borrow.borrowedAmountWads,
+      mintAddress,
       marketValue,
       symbol,
     });
@@ -134,6 +137,7 @@ type Borrow = {
   borrowReserve: PublicKey;
   borrowAmountWads: BN;
   marketValue: BigNumber;
+  mintAddress: string,
   symbol: string;
 };
 
