@@ -153,7 +153,7 @@ export async function getCollateralBalances(connection, wallet, reserves: Reserv
   return collateralBalances;
 }
 
-async function getWalletTokenData(connection, wallet, mintAddress, symbol) {
+export async function getWalletTokenData(connection, wallet, mintAddress, symbol) {
   const token = new Token(
     connection,
     new PublicKey(mintAddress),
@@ -170,14 +170,17 @@ async function getWalletTokenData(connection, wallet, mintAddress, symbol) {
   try {
     const result = await token.getAccountInfo(userTokenAccount);
     const balance = toHuman(result!.amount.toString(), symbol);
+    const balanceBase = result!.amount.toString();
 
     return {
       balance: Number(balance),
+      balanceBase: Number(balanceBase),
       symbol,
     };
   } catch (e) {
     return {
-      balance: 0,
+      balance: -1, // sentinel value
+      balanceBase: -1, // sentinel value
       symbol,
     };
   }

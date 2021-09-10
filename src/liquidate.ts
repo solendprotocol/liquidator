@@ -12,7 +12,7 @@ import { liquidateObligation } from 'libs/actions/liquidateObligation';
 import { ObligationParser } from 'models/layouts/obligation';
 import {
   getCollateralBalances,
-  getObligations, getReserves, U64_MAX, wait,
+  getObligations, getReserves, getWalletTokenData, wait,
 } from 'libs/utils';
 import { getTokensOracleData } from 'libs/pyth';
 import { calculateRefreshedObligation } from 'libs/refreshObligation';
@@ -93,12 +93,22 @@ async function runLiquidator() {
             break;
           }
 
+          // get wallet balance for selected borrow token
+          const { balanceBase } = await getWalletTokenData(connection, payer, selectedBorrow.mintAddress, selectedBorrow.symbol);
+          if (balanceBase === 0) {
+            console.log(`insufficient ${selectedBorrow.symbol} to liquidate obligation ${obligation.pubkey.toString()}`);
+            break;
+          } else if (balanceBase < 0) {
+            console.log(`failed to get wallet balance for ${selectedBorrow.symbol}. Potentially network error or token account does not exist in wallet`);
+            break;
+          }
+
           // Set super high liquidation amount which acts as u64::MAX as program will only liquidate max
           // 50% val of all borrowed assets.
           await liquidateObligation(
             connection,
             payer,
-            U64_MAX,
+            balanceBase,
             selectedBorrow.symbol,
             selectedDeposit.symbol,
             lendingMarkets,
