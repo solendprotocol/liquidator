@@ -129,7 +129,7 @@ async function runLiquidator() {
     // check if collateral redeeming is required
     const collateralBalances = await getCollateralBalances(connection, payer, reserves);
     collateralBalances.forEach(({ balance, symbol }) => {
-      if (balance > 0.001) {
+      if (balance > 0) {
         redeemCollateral(connection, payer, balance.toString(), symbol, lendingMarkets);
       }
     });
