@@ -63,8 +63,8 @@ export async function redeemCollateral(
   const userTokenAccountInfo = await connection.getAccountInfo(
     userTokenAccountAddress,
   );
-  // If token is SOL, we don't want to create the account here because we just created it above
-  if (symbol !== 'SOL' && !userTokenAccountInfo) {
+
+  if (!userTokenAccountInfo) {
     const createUserTokenAccountIx = Token.createAssociatedTokenAccountInstruction(
       ASSOCIATED_TOKEN_PROGRAM_ID,
       TOKEN_PROGRAM_ID,
