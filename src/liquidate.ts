@@ -44,7 +44,7 @@ async function runLiquidator() {
 
     for (let obligation of allObligations) {
       try {
-        while (true) {
+        while (obligation) {
           const {
             borrowedValue,
             unhealthyBorrowValue,
