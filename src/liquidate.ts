@@ -22,6 +22,20 @@ import { clusterUrl, config } from './config';
 
 dotenv.config();
 
+async function fetchData(connection, reserves, lendingMarketPubKey) {
+  while (true) {
+    try {
+      const tokensOracle = await getTokensOracleData(connection, reserves);
+      const allObligations = await getObligations(connection, lendingMarketPubKey);
+      const allReserves = await getReserves(connection, lendingMarketPubKey);
+
+      return { tokensOracle, allObligations, allReserves };
+    } catch (error) {
+      console.log('Failed to fetch required data. Re-attempting...', error);
+    }
+  }
+}
+
 async function runLiquidator() {
   const lendingMarkets = _.findWhere(config.markets, { name: 'main' });
   const { reserves } = lendingMarkets;
@@ -38,17 +52,9 @@ async function runLiquidator() {
   `);
 
   for (let epoch = 0; ; epoch += 1) {
-    const tokensOracle = await getTokensOracleData(connection, reserves)
-      .catch((e) => console.error('failed to fetch oracle: ', e));
-    const allObligations = await getObligations(connection, lendingMarketPubKey)
-      .catch((e) => console.error('failed to fetch obligations: ', e));
-    const allReserves = await getReserves(connection, lendingMarketPubKey)
-      .catch((e) => console.error('failed to fetch reserves: ', e));
-
-    if (!tokensOracle || !allObligations || !allReserves) {
-      console.log('Failed to fetch required data. Reattempting...');
-      continue;
-    }
+    const { tokensOracle, allObligations, allReserves } = await fetchData(
+      connection, reserves, lendingMarketPubKey,
+    );
 
     for (let obligation of allObligations) {
       try {

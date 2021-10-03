@@ -15,7 +15,6 @@ export const RISKY_OBLIGATION_THRESHOLD = 78;
 // to optimize of transaction fees.
 export function calculateRefreshedObligation(
   obligation: Obligation,
-  obligationpubkey: PublicKey,
   reserves,
   tokensOracle,
 ) {
@@ -32,8 +31,8 @@ export function calculateRefreshedObligation(
       throw `Missing token info for reserve ${deposit.depositReserve.toString()}, skipping this obligation. Please pull the latest @solendprotocol/common package.`;
     }
     const { price, decimals, symbol } = tokenOracle;
-    reserves.forEach((r) => console.log(`reserve address ${r.pubkey.toString()}`));
-    console.log('depositReserve', deposit.depositReserve.toString());
+    // reserves.forEach((r) => console.log(`reserve address ${r.pubkey.toString()}`));
+    // console.log('depositReserve', deposit.depositReserve.toString());
     const reserve = find(reserves, (r) => r.pubkey.toString() === deposit.depositReserve.toString()).info;
 
     const collateralExchangeRate = getCollateralExchangeRate(reserve);
@@ -68,8 +67,8 @@ export function calculateRefreshedObligation(
     const {
       price, decimals, symbol, mintAddress,
     } = tokenOracle;
-    reserves.forEach((r) => console.log(`reserve address ${r.pubkey.toString()}`));
-    console.log('depositReserve', borrow.borrowReserve.toString());
+    // reserves.forEach((r) => console.log(`reserve address ${r.pubkey.toString()}`));
+    // console.log('depositReserve', borrow.borrowReserve.toString());
     const reserve = find(reserves, (r) => r.pubkey.toString() === borrow.borrowReserve.toString()).info;
     const borrowAmountWadsWithInterest = getBorrrowedAmountWadsWithInterest(
       new BigNumber(reserve.liquidity.cumulativeBorrowRateWads.toString()),
