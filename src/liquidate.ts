@@ -38,9 +38,17 @@ async function runLiquidator() {
   `);
 
   for (let epoch = 0; ; epoch += 1) {
-    const tokensOracle = await getTokensOracleData(connection, reserves);
-    const allObligations = await getObligations(connection, lendingMarketPubKey);
-    const allReserves = await getReserves(connection, lendingMarketPubKey);
+    const tokensOracle = await getTokensOracleData(connection, reserves)
+      .catch((e) => console.error('failed to fetch oracle: ', e));
+    const allObligations = await getObligations(connection, lendingMarketPubKey)
+      .catch((e) => console.error('failed to fetch obligations: ', e));
+    const allReserves = await getReserves(connection, lendingMarketPubKey)
+      .catch((e) => console.error('failed to fetch reserves: ', e));
+
+    if (!tokensOracle || !allObligations || !allReserves) {
+      console.log('Failed to fetch required data. Reattempting...');
+      continue;
+    }
 
     for (let obligation of allObligations) {
       try {
