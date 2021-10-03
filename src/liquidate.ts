@@ -66,7 +66,6 @@ async function runLiquidator() {
             borrows,
           } = calculateRefreshedObligation(
             obligation.info,
-            obligation.pubkey,
             allReserves,
             tokensOracle,
           );
