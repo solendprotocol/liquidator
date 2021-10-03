@@ -3,7 +3,7 @@ import BigNumber from 'bignumber.js';
 import { findWhere, find } from 'underscore';
 import { Obligation, ObligationCollateral, ObligationLiquidity } from 'models/layouts/obligation';
 import {
-  getCollateralExchangeRate, getLiquidationThresholdRate, getLoanToValueRate, Reserve, WAD,
+  getCollateralExchangeRate, getLiquidationThresholdRate, getLoanToValueRate, WAD,
 } from 'models/layouts/reserve';
 import { PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
@@ -16,7 +16,7 @@ export const RISKY_OBLIGATION_THRESHOLD = 78;
 export function calculateRefreshedObligation(
   obligation: Obligation,
   obligationpubkey: PublicKey,
-  reserves: Reserve[],
+  reserves,
   tokensOracle,
 ) {
   let depositedValue = new BigNumber(0);
@@ -32,6 +32,8 @@ export function calculateRefreshedObligation(
       throw `Missing token info for reserve ${deposit.depositReserve.toString()}, skipping this obligation. Please pull the latest @solendprotocol/common package.`;
     }
     const { price, decimals, symbol } = tokenOracle;
+    reserves.forEach((r) => console.log(`reserve address ${r.pubkey.toString()}`));
+    console.log('depositReserve', deposit.depositReserve.toString());
     const reserve = find(reserves, (r) => r.pubkey.toString() === deposit.depositReserve.toString()).info;
 
     const collateralExchangeRate = getCollateralExchangeRate(reserve);
@@ -66,6 +68,8 @@ export function calculateRefreshedObligation(
     const {
       price, decimals, symbol, mintAddress,
     } = tokenOracle;
+    reserves.forEach((r) => console.log(`reserve address ${r.pubkey.toString()}`));
+    console.log('depositReserve', borrow.borrowReserve.toString());
     const reserve = find(reserves, (r) => r.pubkey.toString() === borrow.borrowReserve.toString()).info;
     const borrowAmountWadsWithInterest = getBorrrowedAmountWadsWithInterest(
       new BigNumber(reserve.liquidity.cumulativeBorrowRateWads.toString()),
