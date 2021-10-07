@@ -29,7 +29,7 @@ export function calculateRefreshedObligation(
   obligation.deposits.forEach((deposit: ObligationCollateral) => {
     const tokenOracle = findWhere(tokensOracle, { reserveAddress: deposit.depositReserve.toString() });
     if (!tokenOracle) {
-      throw `Missing token info for reserve ${deposit.depositReserve.toString()}, skipping this obligation. Please pull the latest @solendprotocol/common package.`;
+      throw `Missing token info for reserve ${deposit.depositReserve.toString()}, skipping this obligation. Please pull latest change on main branch.`;
     }
     const { price, decimals, symbol } = tokenOracle;
     const reserve = find(reserves, (r) => r.pubkey.toString() === deposit.depositReserve.toString()).info;
@@ -61,7 +61,7 @@ export function calculateRefreshedObligation(
     const tokenOracle = findWhere(tokensOracle,
       { reserveAddress: borrow.borrowReserve.toString() });
     if (!tokenOracle) {
-      throw `Missing token info for reserve ${borrow.borrowReserve.toString()}, skipping this obligation. Please pull the latest @solendprotocol/common package.`;
+      throw `Missing token info for reserve ${borrow.borrowReserve.toString()}, skipping this obligation. Please pull latest change on main branch.`;
     }
     const {
       price, decimals, symbol, mintAddress,
