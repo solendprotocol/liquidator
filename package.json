@@ -23,7 +23,7 @@
     "@solana/spl-token": "^0.1.4",
     "@solana/spl-token-registry": "^0.2.114",
     "@solana/web3.js": "=1.21.0",
-    "@solendprotocol/common": "=1.1.30",
+    "@solendprotocol/common": "=1.1.31",
     "bignumber.js": "^9.0.1",
     "bn.js": "^5.2.0",
     "bs58": "^4.0.1",
