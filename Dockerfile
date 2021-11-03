@@ -9,7 +9,7 @@ WORKDIR /home/solend/app
 ENV NODE_OPTIONS=--max_old_space_size=4096
 
 # Only copy the package.json file to work directory
-COPY package.json ./
+COPY package.json package-lock.json ./
 # Install all Packages
 RUN npm install
 
