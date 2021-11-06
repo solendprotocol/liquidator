@@ -64,9 +64,6 @@ export const liquidateObligation = async (
   const repayReserve = findWhere(lendingMarket.reserves, { asset: repayTokenSymbol });
   const withdrawReserve = findWhere(lendingMarket.reserves, { asset: withdrawTokenSymbol });
 
-  const repayTokenOracle = findWhere(config.oracles.assets, { asset: repayTokenSymbol });
-  const withdrawTokenOracle = findWhere(config.oracles.assets, { asset: withdrawTokenSymbol });
-
   // get account that will be getting the obligation's token account in return
   const rewardedWithdrawalCollateralAccount = await Token.getAssociatedTokenAddress(
     ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -88,19 +85,6 @@ export const liquidateObligation = async (
     );
     ixs.push(createUserCollateralAccountIx);
   }
-
-  ixs.push(
-    refreshReserveInstruction(
-      new PublicKey(repayReserve.address),
-      new PublicKey(repayTokenOracle.priceAddress),
-      new PublicKey(repayTokenOracle.switchboardFeedAddress),
-    ),
-    refreshReserveInstruction(
-      new PublicKey(withdrawReserve.address),
-      new PublicKey(withdrawTokenOracle.priceAddress),
-      new PublicKey(withdrawTokenOracle.switchboardFeedAddress),
-    ),
-  );
 
   ixs.push(
     liquidateObligationInstruction(
