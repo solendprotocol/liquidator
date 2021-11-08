@@ -21,7 +21,7 @@ async function getTokenOracleData(
     reserveAddress: reserve.address,
     mintAddress: assetConfig.mintAddress,
     decimals: new BigNumber(10 ** assetConfig.decimals),
-    price: new BigNumber(price),
+    price: new BigNumber(price!),
   };
 }
 
