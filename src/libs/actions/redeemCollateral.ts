@@ -13,18 +13,15 @@ import _ from 'underscore';
 import BN from 'bn.js';
 import { config } from 'config';
 import { redeemReserveCollateralInstruction, refreshReserveInstruction } from 'models/instructions';
-import { getTokenInfo, toBaseUnit } from 'libs/utils';
+import { getTokenInfo } from 'libs/utils';
 
 export async function redeemCollateral(
   connection: Connection,
   payer: Account,
-  amount: string,
+  amountBase: string,
   symbol: string,
   lendingMarket,
 ) {
-  // redeem all our collaterals
-  const amountBase = toBaseUnit(amount, symbol);
-
   const reserve = _.findWhere(lendingMarket!.reserves, { asset: symbol });
   if (!reserve) {
     console.error(`Withdraw: Could not find asset ${symbol} in reserves`);
