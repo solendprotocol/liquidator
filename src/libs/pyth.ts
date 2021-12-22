@@ -28,7 +28,11 @@ async function getTokenOracleData(
 export async function getTokensOracleData(connection: Connection, reserves) {
   const promises: any = [];
   const oracles = config.oracles.assets;
-  reserves.forEach((reserve) => promises.push(getTokenOracleData(connection, oracles, reserve)));
+  reserves.forEach((reserve) => {
+    if (reserve.asset !== 'stSOL' && reserve.asset !== 'scnSOL') {
+      promises.push(getTokenOracleData(connection, oracles, reserve));
+    }
+  });
   const results = await Promise.all(promises);
   return results;
 }
