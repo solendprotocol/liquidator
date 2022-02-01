@@ -3,8 +3,8 @@ import {
   SYSVAR_CLOCK_PUBKEY,
   TransactionInstruction,
 } from '@solana/web3.js';
-import { config } from 'config';
 import * as BufferLayout from 'buffer-layout';
+import { Config } from 'global';
 import { LendingInstruction } from './instruction';
 
 /// Accrue interest and update market price of liquidity on a reserve.
@@ -15,6 +15,7 @@ import { LendingInstruction } from './instruction';
 ///                     Required if the reserve currency is not the lending market quote
 ///                     currency.
 export const refreshReserveInstruction = (
+  config: Config,
   reserve: PublicKey,
   oracle?: PublicKey,
   switchboardFeedAddress?: PublicKey,

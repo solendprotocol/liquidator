@@ -3,7 +3,7 @@ import BigNumber from 'bignumber.js';
 import { findWhere, find } from 'underscore';
 import { Obligation, ObligationCollateral, ObligationLiquidity } from 'models/layouts/obligation';
 import {
-  getCollateralExchangeRate, getLiquidationThresholdRate, getLoanToValueRate, Reserve, WAD,
+  getCollateralExchangeRate, getLiquidationThresholdRate, getLoanToValueRate, WAD,
 } from 'models/layouts/reserve';
 import { PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
@@ -15,8 +15,7 @@ export const RISKY_OBLIGATION_THRESHOLD = 78;
 // to optimize of transaction fees.
 export function calculateRefreshedObligation(
   obligation: Obligation,
-  obligationpubkey: PublicKey,
-  reserves: Reserve[],
+  reserves,
   tokensOracle,
 ) {
   let depositedValue = new BigNumber(0);
@@ -29,7 +28,7 @@ export function calculateRefreshedObligation(
   obligation.deposits.forEach((deposit: ObligationCollateral) => {
     const tokenOracle = findWhere(tokensOracle, { reserveAddress: deposit.depositReserve.toString() });
     if (!tokenOracle) {
-      throw `Missing token info for reserve ${deposit.depositReserve.toString()}, skipping this obligation. Please pull latest change on main branch.`;
+      throw `Missing token info for reserve ${deposit.depositReserve.toString()}, skipping this obligation. Please restart liquidator to fetch latest configs from /v1/config`;
     }
     const { price, decimals, symbol } = tokenOracle;
     const reserve = find(reserves, (r) => r.pubkey.toString() === deposit.depositReserve.toString()).info;
@@ -61,7 +60,7 @@ export function calculateRefreshedObligation(
     const tokenOracle = findWhere(tokensOracle,
       { reserveAddress: borrow.borrowReserve.toString() });
     if (!tokenOracle) {
-      throw `Missing token info for reserve ${borrow.borrowReserve.toString()}, skipping this obligation. Please pull latest change on main branch.`;
+      throw `Missing token info for reserve ${borrow.borrowReserve.toString()}, skipping this obligation. Please restart liquidator to fetch latest config from /v1/config.`;
     }
     const {
       price, decimals, symbol, mintAddress,

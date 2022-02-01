@@ -11,12 +11,13 @@ import {
 } from '@solana/spl-token';
 import _ from 'underscore';
 import BN from 'bn.js';
-import { config } from 'config';
 import { redeemReserveCollateralInstruction, refreshReserveInstruction } from 'models/instructions';
 import { getTokenInfo } from 'libs/utils';
+import { Config } from 'global';
 
 export async function redeemCollateral(
   connection: Connection,
+  config: Config,
   payer: Account,
   amountBase: string,
   symbol: string,
@@ -26,7 +27,7 @@ export async function redeemCollateral(
   if (!reserve) {
     console.error(`Withdraw: Could not find asset ${symbol} in reserves`);
   }
-  const tokenInfo = getTokenInfo(symbol);
+  const tokenInfo = getTokenInfo(config, symbol);
   const oracleInfo = _.findWhere(config.oracles.assets, { asset: symbol });
   if (!oracleInfo) {
     console.error(`Withdraw: Could not find oracle for ${symbol}`);
@@ -36,6 +37,7 @@ export async function redeemCollateral(
 
   // refreshed reserve is required
   const refreshReserveIx = refreshReserveInstruction(
+    config,
     new PublicKey(reserve.address),
     new PublicKey(oracleInfo!.priceAddress),
     new PublicKey(oracleInfo!.switchboardFeedAddress),
@@ -73,6 +75,7 @@ export async function redeemCollateral(
     ixs.push(createUserTokenAccountIx);
   }
   const withdrawObligationCollateralAndRedeemReserveLiquidityIx = redeemReserveCollateralInstruction(
+    config,
     new BN(amountBase),
     userCollateralAccountAddress, // source collateral account
     userTokenAccountAddress, // destinationLiquidity

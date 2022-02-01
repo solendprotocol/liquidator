@@ -4,7 +4,7 @@ import {
   TransactionInstruction,
 } from '@solana/web3.js';
 import BufferLayout from 'buffer-layout';
-import { config } from 'config';
+import { Config } from 'global';
 import { LendingInstruction } from './instruction';
 
 /// Refresh an obligation"s accrued interest and collateral and liquidity prices. Requires
@@ -16,6 +16,7 @@ import { LendingInstruction } from './instruction';
 ///   .. `[]` Collateral deposit reserve accounts - refreshed, all, in order.
 ///   .. `[]` Liquidity borrow reserve accounts - refreshed, all, in order.
 export const refreshObligationInstruction = (
+  config: Config,
   obligation: PublicKey,
   depositReserves: PublicKey[],
   borrowReserves: PublicKey[],

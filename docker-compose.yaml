@@ -1,15 +1,27 @@
 version: "3.1"
 
 services:
-  # The application image
-  solend-liquidator:
+  liquidator-main:
     restart: unless-stopped
     build:
       context: .
       dockerfile: Dockerfile
     environment:
-      - NETWORK=mainnet # solana network e.g mainnet, devnet
+      - APP=production
       - THROTTLE=1900 # Throttle not avoid rate limiting
+      - MARKET=4UpD2fh7xH3VP9QQaXtsS1YY3bxzWhtfpks7FatyKvdY # Lending market for main pool
+    secrets:
+      - keypair # secret to encrypte wallet details in container
+
+  liquidator-turbo-sol:
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - APP=production
+      - THROTTLE=1900 # Throttle not avoid rate limiting
+      - MARKET=7RCz8wb6WXxUhAigok9ttgrVgDFFFbibcirECzWSBauM # Lending market for TURBO SOL pool
     secrets:
       - keypair # secret to encrypte wallet details in container
 

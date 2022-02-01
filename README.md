@@ -15,36 +15,26 @@ A file system wallet funded with SOL, USDC, ETH, SRM BTC is required to liquidat
 2. Update [file system wallet](https://docs.solana.com/wallet-guide/file-system-wallet) path in docker-compose.yaml.
 
 ```
-version: "3.1"
-
-services:
-  # The application image
-  solend-liquidator:
-    restart: unless-stopped
-    build:
-      context: .
-      dockerfile: Dockerfile
-    environment:
-      - NETWORK=mainnet # solana network e.g mainnet, devnet
-      - THROTTLE=600 # Throttle not avoid rate limiting
-    secrets:
-      - keypair # secret to encrypte wallet details in container
-
 secrets:
   keypair:
     file: <PATH TO KEYPAIR WALLET THAT WILL BE LIQUIDATING UNDERWATER OBLIGATIONS>
 ```
 
-3. Build and run service
+3. Build and run liquidator for all pools
 
 ```
 docker-compose up --build
 ```
 
-To run containers in background:
-
+To run liquidator in background:
 ```
 docker-compose up --build -d
+```
+
+To run a specific pool:
+```
+docker-compose up --build liquidator-main
+docker-compose up --build liquidator-turbo-sol
 ```
 
 ## Support

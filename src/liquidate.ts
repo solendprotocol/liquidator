@@ -18,12 +18,17 @@ import { getTokensOracleData } from 'libs/pyth';
 import { calculateRefreshedObligation } from 'libs/refreshObligation';
 import { redeemCollateral } from 'libs/actions/redeemCollateral';
 import { readSecret } from 'libs/secret';
-import { clusterUrl, config } from './config';
+import { clusterUrl, getConfig } from './config';
 
 dotenv.config();
 
 async function runLiquidator() {
-  const lendingMarkets = _.findWhere(config.markets, { name: 'main' });
+  const marketAddress = process.env.MARKET;
+  if (!marketAddress) {
+    throw new Error('no process.env.MARKET provided');
+  }
+  const config = await getConfig();
+  const lendingMarkets = _.findWhere(config.markets, { address: marketAddress });
   const { reserves } = lendingMarkets;
   const connection = new Connection(clusterUrl!.endpoint, 'confirmed');
   const lendingMarketPubKey = new PublicKey(lendingMarkets.address);
@@ -32,15 +37,16 @@ async function runLiquidator() {
   const payer = new Account(JSON.parse(readSecret('keypair')));
 
   console.log(`
-    network: ${process.env.NETWORK}
+    app: ${process.env.APP}
+    lendingMarket: ${marketAddress}
     clusterUrl: ${clusterUrl!.endpoint}
     wallet: ${payer.publicKey.toBase58()}
   `);
 
   for (let epoch = 0; ; epoch += 1) {
-    const tokensOracle = await getTokensOracleData(connection, reserves);
-    const allObligations = await getObligations(connection, lendingMarketPubKey);
-    const allReserves = await getReserves(connection, lendingMarketPubKey);
+    const tokensOracle = await getTokensOracleData(connection, config, reserves);
+    const allObligations = await getObligations(connection, config, lendingMarketPubKey);
+    const allReserves = await getReserves(connection, config, lendingMarketPubKey);
 
     for (let obligation of allObligations) {
       try {
@@ -52,7 +58,6 @@ async function runLiquidator() {
             borrows,
           } = calculateRefreshedObligation(
             obligation.info,
-            obligation.pubkey,
             allReserves,
             tokensOracle,
           );
@@ -85,16 +90,12 @@ async function runLiquidator() {
           });
 
           if (!selectedBorrow || !selectedDeposit) {
-            console.error(
-              `Toxic obligation found in ${obligation.pubkey.toString()}, unable to identify repay and withdrawal tokens`,
-              selectedBorrow && selectedBorrow.symbol,
-              selectedDeposit && selectedDeposit.symbol,
-            );
+            // skip toxic obligations caused by toxic oracle data
             break;
           }
 
           // get wallet balance for selected borrow token
-          const { balanceBase } = await getWalletTokenData(connection, payer, selectedBorrow.mintAddress, selectedBorrow.symbol);
+          const { balanceBase } = await getWalletTokenData(connection, config, payer, selectedBorrow.mintAddress, selectedBorrow.symbol);
           if (balanceBase === 0) {
             console.log(`insufficient ${selectedBorrow.symbol} to liquidate obligation ${obligation.pubkey.toString()}`);
             break;
@@ -107,6 +108,7 @@ async function runLiquidator() {
           // 50% val of all borrowed assets.
           await liquidateObligation(
             connection,
+            config,
             payer,
             balanceBase,
             selectedBorrow.symbol,
@@ -121,16 +123,16 @@ async function runLiquidator() {
           obligation = ObligationParser(obligation.pubkey, postLiquidationObligation!);
         }
       } catch (err) {
-        console.error(`error liquidating ${obligation.pubkey.toString()}: `, err);
+        console.error(`error liquidating ${obligation!.pubkey.toString()}: `, err);
         continue;
       }
     }
 
     // check if collateral redeeming is required
-    const collateralBalances = await getCollateralBalances(connection, payer, reserves);
+    const collateralBalances = await getCollateralBalances(connection, config, payer, reserves);
     collateralBalances.forEach(({ balanceBase, symbol }) => {
       if (balanceBase > 0) {
-        redeemCollateral(connection, payer, balanceBase.toString(), symbol, lendingMarkets);
+        redeemCollateral(connection, config, payer, balanceBase.toString(), symbol, lendingMarkets);
       }
     });
 
