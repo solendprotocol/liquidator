@@ -5,14 +5,14 @@ import {
   parseAggregatorAccountData,
 } from '@switchboard-xyz/switchboard-api';
 import { Connection, PublicKey } from '@solana/web3.js';
-import { OracleAsset, Reserve } from '@solendprotocol/common';
 import BigNumber from 'bignumber.js';
-import { config } from 'config';
+import { Config, OracleAsset, Reserve } from 'global';
 
 const NULL_ORACLE = 'nu11111111111111111111111111111111111111111';
 
 async function getTokenOracleData(
   connection: Connection,
+  config: Config,
   oracles: OracleAsset[],
   reserve: Reserve,
 ) {
@@ -39,10 +39,10 @@ async function getTokenOracleData(
   };
 }
 
-export async function getTokensOracleData(connection: Connection, reserves) {
+export async function getTokensOracleData(connection: Connection, config: Config, reserves) {
   const promises: any = [];
   const oracles = config.oracles.assets;
-  reserves.forEach((reserve) => { promises.push(getTokenOracleData(connection, oracles, reserve)); });
+  reserves.forEach((reserve) => { promises.push(getTokenOracleData(connection, config, oracles, reserve)); });
   const results = await Promise.all(promises);
   return results;
 }

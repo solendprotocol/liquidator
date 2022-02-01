@@ -8,16 +8,16 @@ import {
   Transaction,
   TransactionInstruction,
 } from '@solana/web3.js';
-import { Market } from '@solendprotocol/common';
 import { getTokenInfo } from 'libs/utils';
 import { findWhere, map } from 'underscore';
 import { refreshReserveInstruction } from 'models/instructions/refreshReserve';
 import { liquidateObligationInstruction } from 'models/instructions/liquidateObligation';
 import { refreshObligationInstruction } from 'models/instructions/refreshObligation';
-import { config } from 'config';
+import { Config, Market } from 'global';
 
 export const liquidateObligation = async (
   connection: Connection,
+  config: Config,
   payer: Account,
   liquidityAmount: number,
   repayTokenSymbol: string,
@@ -38,6 +38,7 @@ export const liquidateObligation = async (
       asset: reserveInfo!.asset,
     });
     const refreshReserveIx = refreshReserveInstruction(
+      config,
       new PublicKey(reserveAddress),
       new PublicKey(oracleInfo!.priceAddress),
       new PublicKey(oracleInfo!.switchboardFeedAddress),
@@ -45,13 +46,14 @@ export const liquidateObligation = async (
     ixs.push(refreshReserveIx);
   });
   const refreshObligationIx = refreshObligationInstruction(
+    config,
     obligation.pubkey,
     depositReserves,
     borrowReserves,
   );
   ixs.push(refreshObligationIx);
 
-  const repayTokenInfo = getTokenInfo(repayTokenSymbol);
+  const repayTokenInfo = getTokenInfo(config, repayTokenSymbol);
 
   // get account that will be repaying the reserve liquidity
   const repayAccount = await Token.getAssociatedTokenAddress(
@@ -88,6 +90,7 @@ export const liquidateObligation = async (
 
   ixs.push(
     liquidateObligationInstruction(
+      config,
       liquidityAmount,
       repayAccount,
       rewardedWithdrawalCollateralAccount,

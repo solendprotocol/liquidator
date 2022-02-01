@@ -1,8 +1,7 @@
 import { ASSOCIATED_TOKEN_PROGRAM_ID, Token, TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import { PublicKey } from '@solana/web3.js';
+import { Connection, PublicKey } from '@solana/web3.js';
 import BigNumber from 'bignumber.js';
-import { Reserve } from '@solendprotocol/common';
-import { config } from 'config';
+import { Config, Reserve } from 'global';
 import {
   ObligationParser, OBLIGATION_LEN,
 } from 'models/layouts/obligation';
@@ -13,14 +12,14 @@ export const WAD = new BigNumber(`1${''.padEnd(18, '0')}`);
 export const U64_MAX = '18446744073709551615';
 
 // Converts amount to human (rebase with decimals)
-export function toHuman(amount: string, symbol: string) {
-  const decimals = getDecimals(symbol);
+export function toHuman(config: Config, amount: string, symbol: string) {
+  const decimals = getDecimals(config, symbol);
   return toHumanDec(amount, decimals);
 }
 
-export function toBaseUnit(amount: string, symbol: string) {
+export function toBaseUnit(config: Config, amount: string, symbol: string) {
   if (amount === U64_MAX) return amount;
-  const decimals = getDecimals(symbol);
+  const decimals = getDecimals(config, symbol);
   return toBaseUnitDec(amount, decimals);
 }
 
@@ -58,13 +57,13 @@ function toBaseUnitDec(amount: string, decimals: number) {
   );
 }
 
-function getDecimals(symbol: string) {
-  const tokenInfo = getTokenInfo(symbol);
+function getDecimals(config: Config, symbol: string) {
+  const tokenInfo = getTokenInfo(config, symbol);
   return tokenInfo.decimals;
 }
 
 // Returns token info from config
-export function getTokenInfo(symbol: string) {
+export function getTokenInfo(config: Config, symbol: string) {
   const tokenInfo = findWhere(config.assets, { symbol });
   if (!tokenInfo) {
     throw new Error(`Could not find ${symbol} in config.assets`);
@@ -105,7 +104,7 @@ function stripEnd(s: string, c: string) {
   return s.slice(0, i + 1);
 }
 
-export async function getObligations(connection, lendingMarketPubKey) {
+export async function getObligations(connection: Connection, config: Config, lendingMarketPubKey) {
   const resp = await connection.getProgramAccounts(new PublicKey(config.programID), {
     commitment: connection.commitment,
     filters: [
@@ -124,7 +123,7 @@ export async function getObligations(connection, lendingMarketPubKey) {
   return resp.map((account) => ObligationParser(account.pubkey, account.account));
 }
 
-export async function getReserves(connection, lendingMarketPubKey) {
+export async function getReserves(connection: Connection, config: Config, lendingMarketPubKey) {
   const resp = await connection.getProgramAccounts(new PublicKey(config.programID), {
     commitment: connection.commitment,
     filters: [
@@ -144,16 +143,16 @@ export async function getReserves(connection, lendingMarketPubKey) {
   return resp.map((account) => ReserveParser(account.pubkey, account.account));
 }
 
-export async function getCollateralBalances(connection, wallet, reserves: Reserve[]) {
+export async function getCollateralBalances(connection: Connection, config: Config, wallet, reserves: Reserve[]) {
   const promises: Promise<any>[] = [];
   reserves.forEach((reserve) => {
-    promises.push(getWalletTokenData(connection, wallet, reserve.collateralMintAddress, reserve.asset));
+    promises.push(getWalletTokenData(connection, config, wallet, reserve.collateralMintAddress, reserve.asset));
   });
   const collateralBalances = await Promise.all(promises);
   return collateralBalances;
 }
 
-export async function getWalletTokenData(connection, wallet, mintAddress, symbol) {
+export async function getWalletTokenData(connection: Connection, config: Config, wallet, mintAddress, symbol) {
   const token = new Token(
     connection,
     new PublicKey(mintAddress),
@@ -169,7 +168,7 @@ export async function getWalletTokenData(connection, wallet, mintAddress, symbol
 
   try {
     const result = await token.getAccountInfo(userTokenAccount);
-    const balance = toHuman(result!.amount.toString(), symbol);
+    const balance = toHuman(config, result!.amount.toString(), symbol);
     const balanceBase = result!.amount.toString();
 
     return {

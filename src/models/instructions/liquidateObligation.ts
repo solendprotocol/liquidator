@@ -4,7 +4,7 @@ import {
 } from '@solana/web3.js';
 import BN from 'bn.js';
 import * as BufferLayout from 'buffer-layout';
-import { config } from 'config';
+import { Config } from 'global';
 import * as Layout from 'libs/layout';
 import { LendingInstruction } from './instruction';
 
@@ -27,6 +27,7 @@ import { LendingInstruction } from './instruction';
 ///   10 `[]` Clock sysvar.
 ///   11 `[]` Token program id.
 export const liquidateObligationInstruction = (
+  config: Config,
   liquidityAmount: number | BN | string,
   sourceLiquidity: PublicKey,
   destinationCollateral: PublicKey,

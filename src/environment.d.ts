@@ -4,7 +4,8 @@ declare global {
     interface ProcessEnv {
       THROTTLE: number,
       WALLET_PATH: string,
-      NETWORK: string,
+      APP: string,
+      MARKET: string,
     }
   }
 }

@@ -11,7 +11,7 @@ ENV NODE_OPTIONS=--max_old_space_size=4096
 # Only copy the package.json file to work directory
 COPY package.json package-lock.json ./
 # Install all Packages
-RUN npm install
+RUN npm install --silent
 
 # Copy all other source code to work directory
 COPY src /home/solend/app/src
