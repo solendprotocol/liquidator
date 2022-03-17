@@ -104,14 +104,14 @@ function stripEnd(s: string, c: string) {
   return s.slice(0, i + 1);
 }
 
-export async function getObligations(connection: Connection, config: Config, lendingMarketPubKey) {
+export async function getObligations(connection: Connection, config: Config, lendingMarket) {
   const resp = await connection.getProgramAccounts(new PublicKey(config.programID), {
     commitment: connection.commitment,
     filters: [
       {
         memcmp: {
           offset: 10,
-          bytes: lendingMarketPubKey.toBase58(),
+          bytes: lendingMarket,
         },
       },
       {
@@ -123,14 +123,14 @@ export async function getObligations(connection: Connection, config: Config, len
   return resp.map((account) => ObligationParser(account.pubkey, account.account));
 }
 
-export async function getReserves(connection: Connection, config: Config, lendingMarketPubKey) {
+export async function getReserves(connection: Connection, config: Config, lendingMarket) {
   const resp = await connection.getProgramAccounts(new PublicKey(config.programID), {
     commitment: connection.commitment,
     filters: [
       {
         memcmp: {
           offset: 10,
-          bytes: lendingMarketPubKey.toBase58(),
+          bytes: lendingMarket,
         },
       },
       {

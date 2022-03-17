@@ -11,15 +11,15 @@ import {
 import { getTokenInfo } from 'libs/utils';
 import { findWhere, map } from 'underscore';
 import { refreshReserveInstruction } from 'models/instructions/refreshReserve';
-import { liquidateObligationInstruction } from 'models/instructions/liquidateObligation';
+import { LiquidateObligationAndRedeemReserveCollateral } from 'models/instructions/LiquidateObligationAndRedeemReserveCollateral';
 import { refreshObligationInstruction } from 'models/instructions/refreshObligation';
 import { Config, Market } from 'global';
 
-export const liquidateObligation = async (
+export const liquidateAndRedeem = async (
   connection: Connection,
   config: Config,
   payer: Account,
-  liquidityAmount: number,
+  liquidityAmount: number | string,
   repayTokenSymbol: string,
   withdrawTokenSymbol: string,
   lendingMarket: Market,
@@ -45,6 +45,7 @@ export const liquidateObligation = async (
     );
     ixs.push(refreshReserveIx);
   });
+
   const refreshObligationIx = refreshObligationInstruction(
     config,
     obligation.pubkey,
@@ -65,8 +66,8 @@ export const liquidateObligation = async (
 
   const repayReserve = findWhere(lendingMarket.reserves, { asset: repayTokenSymbol });
   const withdrawReserve = findWhere(lendingMarket.reserves, { asset: withdrawTokenSymbol });
+  const withdrawTokenInfo = getTokenInfo(config, withdrawTokenSymbol);
 
-  // get account that will be getting the obligation's token account in return
   const rewardedWithdrawalCollateralAccount = await Token.getAssociatedTokenAddress(
     ASSOCIATED_TOKEN_PROGRAM_ID,
     TOKEN_PROGRAM_ID,
@@ -88,16 +89,41 @@ export const liquidateObligation = async (
     ixs.push(createUserCollateralAccountIx);
   }
 
+  const rewardedWithdrawalLiquidityAccount = await Token.getAssociatedTokenAddress(
+    ASSOCIATED_TOKEN_PROGRAM_ID,
+    TOKEN_PROGRAM_ID,
+    new PublicKey(withdrawTokenInfo.mintAddress),
+    payer.publicKey,
+  );
+  const rewardedWithdrawalLiquidityAccountInfo = await connection.getAccountInfo(
+    rewardedWithdrawalLiquidityAccount,
+  );
+  if (!rewardedWithdrawalLiquidityAccountInfo) {
+    const createUserCollateralAccountIx = Token.createAssociatedTokenAccountInstruction(
+      ASSOCIATED_TOKEN_PROGRAM_ID,
+      TOKEN_PROGRAM_ID,
+      new PublicKey(withdrawTokenInfo.mintAddress),
+      rewardedWithdrawalLiquidityAccount,
+      payer.publicKey,
+      payer.publicKey,
+    );
+    ixs.push(createUserCollateralAccountIx);
+  }
+
   ixs.push(
-    liquidateObligationInstruction(
+    LiquidateObligationAndRedeemReserveCollateral(
       config,
       liquidityAmount,
       repayAccount,
       rewardedWithdrawalCollateralAccount,
+      rewardedWithdrawalLiquidityAccount,
       new PublicKey(repayReserve.address),
       new PublicKey(repayReserve.liquidityAddress),
       new PublicKey(withdrawReserve.address),
+      new PublicKey(withdrawReserve.collateralMintAddress),
       new PublicKey(withdrawReserve.collateralSupplyAddress),
+      new PublicKey(withdrawReserve.liquidityAddress),
+      new PublicKey(withdrawReserve.liquidityFeeReceiverAddress),
       obligation.pubkey,
       new PublicKey(lendingMarket.address),
       new PublicKey(lendingMarket.authorityAddress),
@@ -111,8 +137,6 @@ export const liquidateObligation = async (
   tx.feePayer = payer.publicKey;
   tx.sign(payer);
 
-  const txHash = await connection.sendRawTransaction(tx.serialize());
-  await connection.confirmTransaction(txHash, 'finalized');
-  console.log(`liquidated obligation ${obligation.pubkey.toString()} in ${txHash}.
-     repayToken: ${repayTokenSymbol}. withdrawToken: ${withdrawTokenSymbol}`);
+  const txHash = await connection.sendRawTransaction(tx.serialize(), { skipPreflight: false });
+  await connection.confirmTransaction(txHash, 'processed');
 };

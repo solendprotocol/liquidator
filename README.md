@@ -31,10 +31,24 @@ To run liquidator in background:
 docker-compose up --build -d
 ```
 
-To run a specific pool:
+
+## FAQ
+1. How to target a specific market?
+The liquidator by default checks the health of all markets (aka isolated pools) e.g main, turbo sol, dog, invictus, etc... If you have the necessary assets in your wallet, the liquidator will attempt to liquidate the unhealhty obligation, otherwise, it simply tells you "insufficient fund" and move on to check the next obligation. If you want to target a specific market, you just need to specify the MARKET param in `docker-compose.yaml` with the market address. You may find all the market address for solend in `https://api.solend.fi/v1/config?deployment=production` 
+
+2. How to change RPC network
+By default we use the public solana rpc which is slow and highly rate limited. We strongly suggest using a custom RPC network e.g rpcpool, figment, etc.. so your bot may be more competitive and win some liquidations. Once you have your rpc url, you may specify it in `config.ts`
 ```
-docker-compose up --build liquidator-main
-docker-compose up --build liquidator-turbo-sol
+{
+  name: 'production',
+  endpoint: '<YOUR CUSTOM RPC NETWORK URL>',
+},
+```
+
+3. How to tweak throttling?
+If you have a custom rpc network, you would want to disable the default throttling we have set up by specifying the THROTTLE environment variable in `docker-compose.yaml` to 0
+```
+  - THROTTLE=0 # Throttle not avoid rate limiting
 ```
 
 ## Support
