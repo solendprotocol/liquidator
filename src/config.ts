@@ -8,7 +8,7 @@ export const LENDING_MARKET_LEN = 290;
 export const ENDPOINTS = [
   {
     name: 'production',
-    endpoint: 'https://api.mainnet-beta.solana.com',
+    endpoint: 'https://solana-api.projectserum.com',
   },
   {
     name: 'devnet',
