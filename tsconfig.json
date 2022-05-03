@@ -25,6 +25,7 @@
    "noImplicitReturns": true,
    "noUnusedLocals": false,
    "noUnusedParameters": false,
+   "useUnknownInCatchVariables": false,
    "resolveJsonModule": true,
    "strict": true
  },

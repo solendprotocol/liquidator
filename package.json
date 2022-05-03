@@ -22,8 +22,9 @@
     "@pythnetwork/client": "^2.0.0",
     "@solana/spl-token": "^0.1.4",
     "@solana/spl-token-registry": "^0.2.114",
-    "@solana/web3.js": "=1.21.0",
+    "@solana/web3.js": "1.33.0",
     "@switchboard-xyz/switchboard-api": "^0.2.160",
+    "@switchboard-xyz/sbv2-lite": "^0.1.0",
     "bignumber.js": "^9.0.1",
     "bn.js": "^5.2.0",
     "bs58": "^4.0.1",
@@ -55,6 +56,6 @@
     "nodemon": "^1.19.4",
     "supertest": "^4.0.2",
     "ts-jest": "^26.3.0",
-    "typescript": "^3.9.9"
+    "typescript": "^4.4.4"
   }
 }
