@@ -6,6 +6,7 @@ declare global {
       WALLET_PATH: string,
       APP: string,
       MARKET: string,
+      REDEEM_STAKED: boolean
     }
   }
 }

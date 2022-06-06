@@ -14,6 +14,7 @@ import { getTokensOracleData } from 'libs/pyth';
 import { calculateRefreshedObligation } from 'libs/refreshObligation';
 import { readSecret } from 'libs/secret';
 import { liquidateAndRedeem } from 'libs/actions/liquidateAndRedeem';
+import { unstakeBasis } from 'libs/swaps/basis/rBasisSwap';
 import { clusterUrl, getConfig } from './config';
 
 dotenv.config();
@@ -120,6 +121,14 @@ async function runLiquidator() {
           console.error(`error liquidating ${obligation!.pubkey.toString()}: `, err);
           continue;
         }
+      }
+
+      // tentative redemption of staked rBasis for Basis
+      if (process.env.REDEEM_STAKED) {
+        // TODO: this is currently purely working for rBasis, when the market is released and I can test with symbols
+        // I need to abstract this to `unstakeToken` and make a symbol logic selector so this is more composable.
+        // It's ugly to have a stub of code here for one specific token alone so will refactor this before it's merged.
+        await unstakeBasis(connection, payer);
       }
 
       // Throttle to avoid rate limiter
