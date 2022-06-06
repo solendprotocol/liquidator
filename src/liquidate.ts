@@ -125,6 +125,9 @@ async function runLiquidator() {
 
       // tentative redemption of staked rBasis for Basis
       if (process.env.REDEEM_STAKED) {
+        // TODO: this is currently purely working for rBasis, when the market is released and I can test with symbols
+        // I need to abstract this to `unstakeToken` and make a symbol logic selector so this is more composable.
+        // It's ugly to have a stub of code here for one specific token alone so will refactor this before it's merged.
         await unstakeBasis(connection, payer);
       }
 
