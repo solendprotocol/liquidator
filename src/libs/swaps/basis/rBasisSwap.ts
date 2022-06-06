@@ -16,8 +16,8 @@ import {
 } from '@solana/web3.js';
 import BN from 'bn.js';
 import * as BufferLayout from 'buffer-layout';
-import { snakeCase } from "snake-case";
-import { sha256 } from "js-sha256";
+import { snakeCase } from 'snake-case';
+import { sha256 } from 'js-sha256';
 import * as Layout from '../../layout';
 import { StakingInstruction, StakingInstructionNames } from './instruction';
 
@@ -90,7 +90,6 @@ export const unstakeBasisInstruction = (
   userToken: PublicKey,
   userRedeemable: PublicKey,
 ): TransactionInstruction => {
-
   const dataLayout = BufferLayout.struct([
     Layout.uint64('amount'),
   ]);

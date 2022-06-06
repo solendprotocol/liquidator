@@ -1,5 +1,8 @@
 /* eslint-disable no-restricted-imports */
 
+// NOTE: call using `npx ts-node src/libs/swaps/basis/rBasisSwap.spec.ts $PAPER_WALLET_PATH`
+//  - where the paper wallet has rBasis in an associated token account
+
 // DEPENDENCIES
 import {
   Account,
@@ -13,6 +16,8 @@ const RPC_MAINNET = 'https://ssc-dao.genesysgo.net/';
 
 // RUN
 (async () => {
+
+  // establish rpc connection
   const connection = new Connection(RPC_MAINNET, 'confirmed');
   
   // open paper wallet
@@ -23,7 +28,7 @@ const RPC_MAINNET = 'https://ssc-dao.genesysgo.net/';
   const paperWallet = new Account(JSON.parse((await readFile(walletPath)).toString()));
   console.log('LOADED', paperWallet.publicKey.toBase58());
 
-  // unstake basis
+  // test unstake basis function
   const result = await unstakeBasis(connection, paperWallet);
   console.log('DONE', result);
 
