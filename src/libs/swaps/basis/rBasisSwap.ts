@@ -1,7 +1,11 @@
+/* eslint-disable new-cap */
+/* eslint-disable no-restricted-imports */
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   Token,
   TOKEN_PROGRAM_ID,
+  AccountLayout,
+  u64,
 } from '@solana/spl-token';
 import {
   Transaction,
@@ -12,7 +16,7 @@ import {
 } from '@solana/web3.js';
 import BN from 'bn.js';
 import * as BufferLayout from 'buffer-layout';
-import * as Layout from 'libs/layout';
+import * as Layout from '../../layout';
 import { StakingInstruction } from './instruction';
 
 // mints & keys
@@ -24,25 +28,80 @@ export const PROGRAM_BASIS_STAKING = 'FTH1V7jAETZfDgHiL4hJudKXtV8tqKN1WEnkyY4kNA
 export const PROGRAM_BASIS_STAKING_INSTANCE = 'HXCJ1tWowNNNUSrtoVnxT3y9ue1tkuaLNbFMM239zm1y';
 export const PROGRAM_BASIS_STAKING_VAULT = '3sBX8hj4URsiBCSRV26fEHkake295fQnM44EYKKsSs51';
 
+function parseTokenAccountData(account, data) {
+  const accountInfo = AccountLayout.decode(data);
+  accountInfo.address = account;
+  accountInfo.mint = new PublicKey(accountInfo.mint);
+  accountInfo.owner = new PublicKey(accountInfo.owner);
+  accountInfo.amount = u64.fromBuffer(accountInfo.amount);
+
+  if (accountInfo.delegateOption === 0) {
+    accountInfo.delegate = null;
+    accountInfo.delegatedAmount = new u64(0);
+  } else {
+    accountInfo.delegate = new PublicKey(accountInfo.delegate);
+    accountInfo.delegatedAmount = u64.fromBuffer(accountInfo.delegatedAmount);
+  }
+
+  accountInfo.isInitialized = accountInfo.state !== 0;
+  accountInfo.isFrozen = accountInfo.state === 2;
+
+  if (accountInfo.isNativeOption === 1) {
+    accountInfo.rentExemptReserve = u64.fromBuffer(accountInfo.isNative);
+    accountInfo.isNative = true;
+  } else {
+    accountInfo.rentExemptReserve = null;
+    accountInfo.isNative = false;
+  }
+
+  if (accountInfo.closeAuthorityOption === 0) {
+    accountInfo.closeAuthority = null;
+  } else {
+    accountInfo.closeAuthority = new PublicKey(accountInfo.closeAuthority);
+  }
+
+  return accountInfo;
+}
+
+export async function getTokenAccount(connection, publicKey) {
+  const result = await connection.getAccountInfo(publicKey);
+  if (!result) return false;
+  const data = Buffer.from(result.data);
+  const account = parseTokenAccountData(publicKey, data);
+  return {
+    publicKey,
+    account,
+  };
+}
+
 export const unstakeBasisInstruction = (
   amount: number | BN | string,
   userAuthority: PublicKey,
   userToken: PublicKey,
   userRedeemable: PublicKey,
 ): TransactionInstruction => {
+
+  // TODO: replace with anchor instruction serialisation
   const dataLayout = BufferLayout.struct([
     BufferLayout.u8('instruction'),
     Layout.uint64('amount'),
   ]);
 
   const data = Buffer.alloc(dataLayout.span);
-  dataLayout.encode(
-    {
-      instruction: StakingInstruction.unstake,
-      amount: new BN(amount),
-    },
-    data,
-  );
+  dataLayout.encode({
+    instruction: StakingInstruction.unstake,
+    amount: new BN(amount),
+  },
+  data);
+
+  // userAuthority    M[ ] S[x]
+  // userToken        M[x] S[ ]
+  // userRedeemable   M[x] S[ ]
+  // redeemableMint   M[x] S[ ]
+  // tokenMint        M[ ] S[ ]
+  // stakingAccount   M[ ] S[ ]
+  // tokenVault       M[x] S[ ]
+  // tokenProgram     M[ ] S[ ]
 
   const keys = [
     { pubkey: userAuthority, isSigner: true, isWritable: false },
@@ -51,7 +110,7 @@ export const unstakeBasisInstruction = (
     { pubkey: new PublicKey(MINT_RBASIS), isSigner: false, isWritable: true },
     { pubkey: new PublicKey(MINT_BASIS), isSigner: false, isWritable: false },
     { pubkey: new PublicKey(PROGRAM_BASIS_STAKING_INSTANCE), isSigner: false, isWritable: false },
-    { pubkey: new PublicKey(PROGRAM_BASIS_STAKING_INSTANCE), isSigner: false, isWritable: true },
+    { pubkey: new PublicKey(PROGRAM_BASIS_STAKING_VAULT), isSigner: false, isWritable: true },
     { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
   ];
 
@@ -87,6 +146,7 @@ export const unstakeBasis = async (
     );
     ixs.push(createBasisAtaIx);
   }
+  console.log('BASIS ACCOUNT', BasisAccount.toBase58());
 
   // get associated token account for rBasis
   const rBasisAccount = await Token.getAssociatedTokenAddress(
@@ -96,11 +156,15 @@ export const unstakeBasis = async (
     payer.publicKey,
   );
   const rBasisAccountInfo = await connection.getAccountInfo(rBasisAccount);
-  if (!rBasisAccountInfo) throw new Error('this function requires active rBasis associated token account');
+  const rBasisTokenAccount = await getTokenAccount(connection, rBasisAccount);
+  if (!rBasisAccountInfo || !rBasisTokenAccount) throw new Error('this function requires active rBasis associated token account');
+  const rBasisAmount = rBasisTokenAccount.account.amount.toNumber();
+  console.log('rBASIS ACCOUNT', rBasisAccount.toBase58(), rBasisTokenAccount.account.amount.toNumber());
+  if (!rBasisAmount || rBasisAmount === 0) throw new Error('insufficient rBasis present in account');
 
   // compose full unstake instruction
   const unstakeBasisIx = unstakeBasisInstruction(
-    rBasisAccountInfo.lamports, // NOTE: full unstake
+    rBasisTokenAccount.account.amount, // NOTE: full unstake
     payer.publicKey,
     BasisAccount,
     rBasisAccount,
