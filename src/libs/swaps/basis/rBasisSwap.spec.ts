@@ -25,6 +25,6 @@ const RPC_MAINNET = 'https://ssc-dao.genesysgo.net/';
 
   // unstake basis
   const result = await unstakeBasis(connection, paperWallet);
-  console.log(result);
+  console.log('DONE', result);
 
 })();

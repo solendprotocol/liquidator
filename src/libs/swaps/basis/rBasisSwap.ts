@@ -16,17 +16,27 @@ import {
 } from '@solana/web3.js';
 import BN from 'bn.js';
 import * as BufferLayout from 'buffer-layout';
+import { snakeCase } from "snake-case";
+import { sha256 } from "js-sha256";
 import * as Layout from '../../layout';
-import { StakingInstruction } from './instruction';
+import { StakingInstruction, StakingInstructionNames } from './instruction';
 
-// mints & keys
+// CONSTANTS
 // NOTE: did not use the usual getTokenInfo pattern as not sure how useful
 // an abstract redemption is as staking contracts aren't universal
+const SIGHASH_GLOBAL_NAMESPACE = 'global';
 export const MINT_BASIS = 'Basis9oJw9j8cw53oMV7iqsgo6ihi9ALw4QR31rcjUJa';
 export const MINT_RBASIS = 'rBsH9ME52axhqSjAVXY3t1xcCrmntVNvP3X16pRjVdM';
 export const PROGRAM_BASIS_STAKING = 'FTH1V7jAETZfDgHiL4hJudKXtV8tqKN1WEnkyY4kNAAC';
 export const PROGRAM_BASIS_STAKING_INSTANCE = 'HXCJ1tWowNNNUSrtoVnxT3y9ue1tkuaLNbFMM239zm1y';
 export const PROGRAM_BASIS_STAKING_VAULT = '3sBX8hj4URsiBCSRV26fEHkake295fQnM44EYKKsSs51';
+
+// NOTE: LIFTED FROM ANCHOR
+export function sighash(nameSpace: string, ixName: string): Buffer {
+  const name = snakeCase(ixName);
+  const preimage = `${nameSpace}:${name}`;
+  return Buffer.from(sha256.digest(preimage)).slice(0, 8);
+}
 
 function parseTokenAccountData(account, data) {
   const accountInfo = AccountLayout.decode(data);
@@ -81,18 +91,17 @@ export const unstakeBasisInstruction = (
   userRedeemable: PublicKey,
 ): TransactionInstruction => {
 
-  // TODO: replace with anchor instruction serialisation
   const dataLayout = BufferLayout.struct([
-    BufferLayout.u8('instruction'),
     Layout.uint64('amount'),
   ]);
 
   const data = Buffer.alloc(dataLayout.span);
-  dataLayout.encode({
-    instruction: StakingInstruction.unstake,
-    amount: new BN(amount),
-  },
-  data);
+  dataLayout.encode(
+    {
+      amount: new BN(amount),
+    },
+    data,
+  );
 
   // userAuthority    M[ ] S[x]
   // userToken        M[x] S[ ]
@@ -117,7 +126,7 @@ export const unstakeBasisInstruction = (
   return new TransactionInstruction({
     keys,
     programId: new PublicKey(PROGRAM_BASIS_STAKING),
-    data,
+    data: Buffer.concat([sighash(SIGHASH_GLOBAL_NAMESPACE, StakingInstructionNames[StakingInstruction.unstake]), data]),
   });
 };
 
@@ -146,7 +155,8 @@ export const unstakeBasis = async (
     );
     ixs.push(createBasisAtaIx);
   }
-  console.log('BASIS ACCOUNT', BasisAccount.toBase58());
+  // DEBUG
+  // console.log('BASIS ACCOUNT', BasisAccount.toBase58());
 
   // get associated token account for rBasis
   const rBasisAccount = await Token.getAssociatedTokenAddress(
@@ -159,7 +169,8 @@ export const unstakeBasis = async (
   const rBasisTokenAccount = await getTokenAccount(connection, rBasisAccount);
   if (!rBasisAccountInfo || !rBasisTokenAccount) throw new Error('this function requires active rBasis associated token account');
   const rBasisAmount = rBasisTokenAccount.account.amount.toNumber();
-  console.log('rBASIS ACCOUNT', rBasisAccount.toBase58(), rBasisTokenAccount.account.amount.toNumber());
+  // DEBUG
+  // console.log('rBASIS ACCOUNT', rBasisAccount.toBase58(), rBasisTokenAccount.account.amount.toNumber());
   if (!rBasisAmount || rBasisAmount === 0) throw new Error('insufficient rBasis present in account');
 
   // compose full unstake instruction
@@ -179,6 +190,7 @@ export const unstakeBasis = async (
 
   const txHash = await connection.sendRawTransaction(tx.serialize(), { skipPreflight: false });
   await connection.confirmTransaction(txHash, 'processed');
+  return txHash;
 };
 
 /*
