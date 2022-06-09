@@ -19,7 +19,10 @@ import { clusterUrl, getConfig } from './config';
 dotenv.config();
 
 async function runLiquidator() {
+  // calls solend api that stores information about all lending markets
   const config = await getConfig();
+
+  // connects to solana (web3 connection)
   const connection = new Connection(clusterUrl!.endpoint, 'confirmed');
 
   // liquidator's keypair.
@@ -32,19 +35,26 @@ async function runLiquidator() {
   `);
 
   for (let epoch = 0; ; epoch += 1) {
+    // for each market...
     for (const market of config.markets) {
       // Target specific market if MARKET is specified in docker-compose.yaml
       if (process.env.MARKET && process.env.MARKET !== market.address) {
         continue;
       }
 
+      // get a bunch of data
+      // this is token oracles
       const tokensOracle = await getTokensOracleData(connection, config, market.reserves);
+      // solend info
       const allObligations = await getObligations(connection, config, market.address);
       const allReserves = await getReserves(connection, config, market.address);
 
+      // for each obligation
       for (let obligation of allObligations) {
         try {
+          // while obligation is still unhealthy...
           while (obligation) {
+            // simulate locally what the current account/obligation statuses are
             const {
               borrowedValue,
               unhealthyBorrowValue,
@@ -57,6 +67,7 @@ async function runLiquidator() {
             );
 
             // Do nothing if obligation is healthy
+            // and move on to next obligation
             if (borrowedValue.isLessThanOrEqualTo(unhealthyBorrowValue)) {
               break;
             }
@@ -77,6 +88,7 @@ async function runLiquidator() {
               }
             });
 
+            // move on to the next obligation
             if (!selectedBorrow || !selectedDeposit) {
               // skip toxic obligations caused by toxic oracle data
               break;
@@ -88,6 +100,8 @@ async function runLiquidator() {
               market address: ${market.address}`);
 
             // get wallet balance for selected borrow token
+            // check if wallet has enough tokens, if not, move on to next obligation
+            // this liquidator doesn't trade
             const { balanceBase } = await getWalletTokenData(connection, config, payer, selectedBorrow.mintAddress, selectedBorrow.symbol);
             if (balanceBase === 0) {
               console.log(`insufficient ${selectedBorrow.symbol} to liquidate obligation ${obligation.pubkey.toString()} in market: ${market.address}`);
@@ -99,7 +113,7 @@ async function runLiquidator() {
             }
 
             // Set super high liquidation amount which acts as u64::MAX as program will only liquidate max
-            // 50% val of all borrowed assets.
+            // 20% val of all borrowed assets.
             await liquidateAndRedeem(
               connection,
               config,

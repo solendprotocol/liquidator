@@ -16,4 +16,4 @@ services:
 
 secrets:
   keypair:
-    file: ./id.json
+    file: /run/secrets/keypair
