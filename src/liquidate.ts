@@ -124,7 +124,7 @@ async function runLiquidator() {
 
       // Throttle to avoid rate limiter
       if (process.env.THROTTLE) {
-        await wait(process.env.THROTTLE);
+        await wait(Number(process.env.THROTTLE));
       }
     }
   }
