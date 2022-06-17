@@ -6,6 +6,7 @@ import BN from 'bn.js';
 import * as BufferLayout from 'buffer-layout';
 import { Config } from 'global';
 import * as Layout from 'libs/layout';
+import { getProgramIdForCurrentDeployment } from 'libs/utils';
 import { LendingInstruction } from './instruction';
 
 /// Repay borrowed liquidity to a reserve to receive collateral at a discount from an unhealthy
@@ -30,7 +31,6 @@ import { LendingInstruction } from './instruction';
 ///   13 `[signer]` User transfer authority ($authority).
 ///   14 `[]` Token program id.
 export const LiquidateObligationAndRedeemReserveCollateral = (
-  config: Config,
   liquidityAmount: number | BN | string,
   sourceLiquidity: PublicKey,
   destinationCollateral: PublicKey,
@@ -85,7 +85,7 @@ export const LiquidateObligationAndRedeemReserveCollateral = (
 
   return new TransactionInstruction({
     keys,
-    programId: new PublicKey(config.programID),
+    programId: new PublicKey(getProgramIdForCurrentDeployment()),
     data,
   });
 };

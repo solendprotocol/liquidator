@@ -8,21 +8,20 @@ import {
   Transaction,
   TransactionInstruction,
 } from '@solana/web3.js';
-import { getTokenInfo } from 'libs/utils';
+import { getTokenInfo, getTokenInfoFromMarket } from 'libs/utils';
 import { findWhere, map } from 'underscore';
 import { refreshReserveInstruction } from 'models/instructions/refreshReserve';
 import { LiquidateObligationAndRedeemReserveCollateral } from 'models/instructions/LiquidateObligationAndRedeemReserveCollateral';
 import { refreshObligationInstruction } from 'models/instructions/refreshObligation';
-import { Config, Market } from 'global';
+import { Config, Market, MarketBean, ReserveBean } from 'global';
 
 export const liquidateAndRedeem = async (
   connection: Connection,
-  config: Config,
   payer: Account,
   liquidityAmount: number | string,
   repayTokenSymbol: string,
   withdrawTokenSymbol: string,
-  lendingMarket: Market,
+  lendingMarket: MarketBean,
   obligation: any,
 ) => {
   const ixs: TransactionInstruction[] = [];
@@ -31,14 +30,14 @@ export const liquidateAndRedeem = async (
   const borrowReserves = map(obligation.info.borrows, (borrow) => borrow.borrowReserve);
   const uniqReserveAddresses = [...new Set<String>(map(depositReserves.concat(borrowReserves), (reserve) => reserve.toString()))];
   uniqReserveAddresses.forEach((reserveAddress) => {
-    const reserveInfo = findWhere(lendingMarket!.reserves, {
+    const reserveInfo: ReserveBean = findWhere(lendingMarket!.reserves, {
       address: reserveAddress,
     });
-    const oracleInfo = findWhere(config.oracles.assets, {
-      asset: reserveInfo!.asset,
-    });
+    const oracleInfo = {
+      priceAddress: reserveInfo.pythOracle,
+      switchboardFeedAddress: reserveInfo.switchboardOracle
+    };
     const refreshReserveIx = refreshReserveInstruction(
-      config,
       new PublicKey(reserveAddress),
       new PublicKey(oracleInfo!.priceAddress),
       new PublicKey(oracleInfo!.switchboardFeedAddress),
@@ -47,14 +46,13 @@ export const liquidateAndRedeem = async (
   });
 
   const refreshObligationIx = refreshObligationInstruction(
-    config,
     obligation.pubkey,
     depositReserves,
     borrowReserves,
   );
   ixs.push(refreshObligationIx);
 
-  const repayTokenInfo = getTokenInfo(config, repayTokenSymbol);
+  const repayTokenInfo = getTokenInfoFromMarket(lendingMarket, repayTokenSymbol);
 
   // get account that will be repaying the reserve liquidity
   const repayAccount = await Token.getAssociatedTokenAddress(
@@ -64,9 +62,9 @@ export const liquidateAndRedeem = async (
     payer.publicKey,
   );
 
-  const repayReserve = findWhere(lendingMarket.reserves, { asset: repayTokenSymbol });
-  const withdrawReserve = findWhere(lendingMarket.reserves, { asset: withdrawTokenSymbol });
-  const withdrawTokenInfo = getTokenInfo(config, withdrawTokenSymbol);
+  const repayReserve: ReserveBean = findWhere(lendingMarket.reserves, { asset: repayTokenSymbol });
+  const withdrawReserve: ReserveBean = findWhere(lendingMarket.reserves, { asset: withdrawTokenSymbol });
+  const withdrawTokenInfo = getTokenInfoFromMarket(lendingMarket, withdrawTokenSymbol);
 
   const rewardedWithdrawalCollateralAccount = await Token.getAssociatedTokenAddress(
     ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -81,7 +79,7 @@ export const liquidateAndRedeem = async (
     const createUserCollateralAccountIx = Token.createAssociatedTokenAccountInstruction(
       ASSOCIATED_TOKEN_PROGRAM_ID,
       TOKEN_PROGRAM_ID,
-      withdrawReserve.collateralMintAddress,
+      new PublicKey(withdrawReserve.collateralMintAddress),
       rewardedWithdrawalCollateralAccount,
       payer.publicKey,
       payer.publicKey,
@@ -112,7 +110,6 @@ export const liquidateAndRedeem = async (
 
   ixs.push(
     LiquidateObligationAndRedeemReserveCollateral(
-      config,
       liquidityAmount,
       repayAccount,
       rewardedWithdrawalCollateralAccount,

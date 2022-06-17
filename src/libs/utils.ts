@@ -1,7 +1,7 @@
 import { ASSOCIATED_TOKEN_PROGRAM_ID, Token, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { Connection, PublicKey } from '@solana/web3.js';
 import BigNumber from 'bignumber.js';
-import { Config, Reserve } from 'global';
+import { Config, LiquidityTokenBean, MarketBean, Reserve, ReserveBean } from 'global';
 import {
   ObligationParser, OBLIGATION_LEN,
 } from 'models/layouts/obligation';
@@ -71,6 +71,21 @@ export function getTokenInfo(config: Config, symbol: string) {
   return tokenInfo;
 }
 
+export function getTokenInfoFromMarket(market: MarketBean, symbol: string) {
+  const reserve: ReserveBean = findWhere(market.reserves, { liquidityToken: { symbol } });
+  const { liquidityToken } = reserve;
+  if (!reserve) {
+    throw new Error(`Could not find ${symbol} in config.assets`);
+  }
+  return {
+    name: liquidityToken.name,
+    symbol: liquidityToken.symbol,
+    decimals: liquidityToken.decimals,
+    mintAddress: liquidityToken.mint,
+    logo: liquidityToken.logo
+  };
+}
+
 export function wait(ms: number) {
   return new Promise((res) => setTimeout(res, ms));
 }
@@ -104,14 +119,24 @@ function stripEnd(s: string, c: string) {
   return s.slice(0, i + 1);
 }
 
-export async function getObligations(connection: Connection, config: Config, lendingMarket) {
-  const resp = await connection.getProgramAccounts(new PublicKey(config.programID), {
+export function getProgramIdForCurrentDeployment() {
+  if (process.env.APP == "beta") {
+    return 'BLendhFh4HGnycEDDFhbeFEUYLP4fXB5tTHMoTX8Dch5';
+  } else if (process.env.APP == "production") {
+    return 'So1endDq2YkqhipRh3WViPa8hdiSpxWy6z3Z6tMCpAo';
+  }
+  return 'So1endDq2YkqhipRh3WViPa8hdiSpxWy6z3Z6tMCpAo';
+}
+
+export async function getObligations(connection: Connection, lendingMarketAddr) {
+  const programID = getProgramIdForCurrentDeployment();
+  const resp = await connection.getProgramAccounts(new PublicKey(programID), {
     commitment: connection.commitment,
     filters: [
       {
         memcmp: {
           offset: 10,
-          bytes: lendingMarket,
+          bytes: lendingMarketAddr,
         },
       },
       {
@@ -123,14 +148,15 @@ export async function getObligations(connection: Connection, config: Config, len
   return resp.map((account) => ObligationParser(account.pubkey, account.account));
 }
 
-export async function getReserves(connection: Connection, config: Config, lendingMarket) {
-  const resp = await connection.getProgramAccounts(new PublicKey(config.programID), {
+export async function getReserves(connection: Connection, lendingMarketAddr) {
+  const programID = getProgramIdForCurrentDeployment();
+  const resp = await connection.getProgramAccounts(new PublicKey(programID), {
     commitment: connection.commitment,
     filters: [
       {
         memcmp: {
           offset: 10,
-          bytes: lendingMarket,
+          bytes: lendingMarketAddr,
         },
       },
       {
