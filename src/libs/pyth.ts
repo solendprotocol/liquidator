@@ -14,47 +14,6 @@ const SWITCHBOARD_V2_ADDRESS = 'SW1TCH7qEPTdLsDHRgPuMQjbQxKdH2aBStViMFnt64f';
 
 let switchboardV2: SwitchboardProgram | undefined;
 
-async function getTokenOracleData(
-  connection: Connection,
-  config: Config,
-  oracles: OracleAsset[],
-  reserve: Reserve,
-) {
-  let price;
-  const oracle = findWhere(oracles, { asset: reserve.asset });
-  if (oracle.priceAddress && oracle.priceAddress !== NULL_ORACLE) {
-    const pricePublicKey = new PublicKey(oracle.priceAddress);
-    const result = await connection.getAccountInfo(pricePublicKey);
-    price = parsePriceData(result!.data).price;
-  } else {
-    const pricePublicKey = new PublicKey(oracle.switchboardFeedAddress);
-    const info = await connection.getAccountInfo(pricePublicKey);
-    const owner = info?.owner.toString();
-    if (owner === SWITCHBOARD_V1_ADDRESS) {
-      const result = AggregatorState.decodeDelimited((info?.data as Buffer)?.slice(1));
-      price = result?.lastRoundResult?.result;
-    } else if (owner === SWITCHBOARD_V2_ADDRESS) {
-      if (!switchboardV2) {
-        switchboardV2 = await SwitchboardProgram.loadMainnet(connection);
-      }
-      const result = switchboardV2.decodeLatestAggregatorValue(info!);
-      price = result?.toNumber();
-    } else {
-      console.error('unrecognized switchboard owner address: ', owner);
-    }
-  }
-
-  const assetConfig = findWhere(config.assets, { symbol: oracle.asset });
-
-  return {
-    symbol: oracle.asset,
-    reserveAddress: reserve.address,
-    mintAddress: assetConfig.mintAddress,
-    decimals: new BigNumber(10 ** assetConfig.decimals),
-    price: new BigNumber(price!),
-  };
-}
-
 export type TokenOracleData = {
   symbol: string;
   reserveAddress: string;
@@ -63,7 +22,7 @@ export type TokenOracleData = {
   price: BigNumber;
 };
 
-async function getTokenOracleDataMarkets(connection:Connection, reserve:ReserveBean, market:MarketBean) {
+async function getTokenOracleData(connection:Connection, reserve:ReserveBean, market:MarketBean) {
   let price;
   const oracle = {
     priceAddress: reserve.pythOracle,
@@ -102,6 +61,6 @@ async function getTokenOracleDataMarkets(connection:Connection, reserve:ReserveB
 }
 
 export async function getTokensOracleData(connection: Connection, market: MarketBean) {
-  const promises: Promise<any>[] = market.reserves.map((reserve) => getTokenOracleDataMarkets(connection, reserve, market));
+  const promises: Promise<any>[] = market.reserves.map((reserve) => getTokenOracleData(connection, reserve, market));
   return await Promise.all(promises);
 }

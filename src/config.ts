@@ -1,6 +1,6 @@
 /* eslint-disable no-loop-func */
 import got from 'got';
-import { Config, Market, MarketBean } from 'global';
+import { Config, MarketBean } from 'global';
 
 export const OBLIGATION_LEN = 1300;
 export const RESERVE_LEN = 619;
