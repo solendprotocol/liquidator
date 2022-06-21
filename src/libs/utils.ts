@@ -2,7 +2,7 @@ import { ASSOCIATED_TOKEN_PROGRAM_ID, Token, TOKEN_PROGRAM_ID } from '@solana/sp
 import { Connection, PublicKey } from '@solana/web3.js';
 import BigNumber from 'bignumber.js';
 import {
-  LiquidityTokenBean, MarketBean,
+  LiquidityToken, MarketConfig,
 } from 'global';
 import {
   ObligationParser, OBLIGATION_LEN,
@@ -14,12 +14,12 @@ export const WAD = new BigNumber(`1${''.padEnd(18, '0')}`);
 export const U64_MAX = '18446744073709551615';
 
 // Converts amount to human (rebase with decimals)
-export function toHuman(market: MarketBean, amount: string, symbol: string) {
+export function toHuman(market: MarketConfig, amount: string, symbol: string) {
   const decimals = getDecimals(market, symbol);
   return toHumanDec(amount, decimals);
 }
 
-export function toBaseUnit(market: MarketBean, amount: string, symbol: string) {
+export function toBaseUnit(market: MarketConfig, amount: string, symbol: string) {
   if (amount === U64_MAX) return amount;
   const decimals = getDecimals(market, symbol);
   return toBaseUnitDec(amount, decimals);
@@ -59,13 +59,13 @@ function toBaseUnitDec(amount: string, decimals: number) {
   );
 }
 
-function getDecimals(market: MarketBean, symbol: string) {
+function getDecimals(market: MarketConfig, symbol: string) {
   const tokenInfo = getTokenInfo(market, symbol);
   return tokenInfo.decimals;
 }
 
 // Returns token info from config
-export function getTokenInfo(market: MarketBean, symbol: string) {
+export function getTokenInfo(market: MarketConfig, symbol: string) {
   const tokenInfo = findWhere(market.reserves.map((reserve) => reserve.liquidityToken), { symbol });
   if (!tokenInfo) {
     throw new Error(`Could not find ${symbol} in config.assets`);
@@ -73,8 +73,8 @@ export function getTokenInfo(market: MarketBean, symbol: string) {
   return tokenInfo;
 }
 
-export function getTokenInfoFromMarket(market: MarketBean, symbol: string) {
-  const liquidityToken: LiquidityTokenBean = findWhere(market.reserves.map((reserve) => reserve.liquidityToken), { symbol });
+export function getTokenInfoFromMarket(market: MarketConfig, symbol: string) {
+  const liquidityToken: LiquidityToken = findWhere(market.reserves.map((reserve) => reserve.liquidityToken), { symbol });
   if (!liquidityToken) {
     throw new Error(`Could not find ${symbol} in config.assets`);
   }
@@ -120,14 +120,12 @@ function stripEnd(s: string, c: string) {
   return s.slice(0, i + 1);
 }
 
-export function getProgramIdForCurrentDeployment() {
-  if (process.env.APP === 'beta') {
-    return 'BLendhFh4HGnycEDDFhbeFEUYLP4fXB5tTHMoTX8Dch5';
-  }
-  if (process.env.APP === 'production') {
-    return 'So1endDq2YkqhipRh3WViPa8hdiSpxWy6z3Z6tMCpAo';
-  }
-  return 'So1endDq2YkqhipRh3WViPa8hdiSpxWy6z3Z6tMCpAo';
+export function getProgramIdForCurrentDeployment(): string {
+  return {
+    'beta': 'BLendhFh4HGnycEDDFhbeFEUYLP4fXB5tTHMoTX8Dch5',
+    'production': 'So1endDq2YkqhipRh3WViPa8hdiSpxWy6z3Z6tMCpAo',
+    'staging': 'ALend7Ketfx5bxh6ghsCDXAoDrhvEmsXT3cynB6aPLgx',
+  }[process.env.APP] || 'So1endDq2YkqhipRh3WViPa8hdiSpxWy6z3Z6tMCpAo';
 }
 
 export async function getObligations(connection: Connection, lendingMarketAddr) {
@@ -171,7 +169,7 @@ export async function getReserves(connection: Connection, lendingMarketAddr) {
   return resp.map((account) => ReserveParser(account.pubkey, account.account));
 }
 
-export async function getWalletTokenData(connection: Connection, market: MarketBean, wallet, mintAddress, symbol) {
+export async function getWalletTokenData(connection: Connection, market: MarketConfig, wallet, mintAddress, symbol) {
   const token = new Token(
     connection,
     new PublicKey(mintAddress),

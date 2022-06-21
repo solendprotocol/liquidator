@@ -1,4 +1,4 @@
-export interface MarketBean {
+export interface MarketConfig {
   name: string;
   isPrimary: boolean;
   description: string;
@@ -6,11 +6,11 @@ export interface MarketBean {
   address: string;
   authorityAddress: string;
   owner: string;
-  reserves: ReserveBean[];
+  reserves: MarketConfigReserve[];
 }
 
-export interface ReserveBean {
-  liquidityToken: LiquidityTokenBean;
+export interface MarketConfigReserve {
+  liquidityToken: LiquidityToken;
   pythOracle: string;
   switchboardOracle: string;
   address: string;
@@ -21,7 +21,7 @@ export interface ReserveBean {
   userSupplyCap: number;
 }
 
-export interface LiquidityTokenBean {
+export interface LiquidityToken {
   coingeckoID: string;
   decimals: number;
   logo: string;

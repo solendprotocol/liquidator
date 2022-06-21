@@ -15,7 +15,7 @@ import { findWhere, map } from 'underscore';
 import { refreshReserveInstruction } from 'models/instructions/refreshReserve';
 import { LiquidateObligationAndRedeemReserveCollateral } from 'models/instructions/LiquidateObligationAndRedeemReserveCollateral';
 import { refreshObligationInstruction } from 'models/instructions/refreshObligation';
-import { MarketBean, ReserveBean } from 'global';
+import { MarketConfig, MarketConfigReserve } from 'global';
 
 export const liquidateAndRedeem = async (
   connection: Connection,
@@ -23,7 +23,7 @@ export const liquidateAndRedeem = async (
   liquidityAmount: number | string,
   repayTokenSymbol: string,
   withdrawTokenSymbol: string,
-  lendingMarket: MarketBean,
+  lendingMarket: MarketConfig,
   obligation: any,
 ) => {
   const ixs: TransactionInstruction[] = [];
@@ -32,7 +32,7 @@ export const liquidateAndRedeem = async (
   const borrowReserves = map(obligation.info.borrows, (borrow) => borrow.borrowReserve);
   const uniqReserveAddresses = [...new Set<String>(map(depositReserves.concat(borrowReserves), (reserve) => reserve.toString()))];
   uniqReserveAddresses.forEach((reserveAddress) => {
-    const reserveInfo: ReserveBean = findWhere(lendingMarket!.reserves, {
+    const reserveInfo: MarketConfigReserve = findWhere(lendingMarket!.reserves, {
       address: reserveAddress,
     });
     const oracleInfo = {
@@ -64,12 +64,12 @@ export const liquidateAndRedeem = async (
     payer.publicKey,
   );
 
-  const reserveSymbolToReserveMap = new Map<string, ReserveBean>(
+  const reserveSymbolToReserveMap = new Map<string, MarketConfigReserve>(
     lendingMarket.reserves.map((reserve) => [reserve.liquidityToken.symbol, reserve]),
   );
 
-  const repayReserve: ReserveBean | undefined = reserveSymbolToReserveMap.get(repayTokenSymbol);
-  const withdrawReserve: ReserveBean | undefined = reserveSymbolToReserveMap.get(withdrawTokenSymbol);
+  const repayReserve: MarketConfigReserve | undefined = reserveSymbolToReserveMap.get(repayTokenSymbol);
+  const withdrawReserve: MarketConfigReserve | undefined = reserveSymbolToReserveMap.get(withdrawTokenSymbol);
   const withdrawTokenInfo = getTokenInfoFromMarket(lendingMarket, withdrawTokenSymbol);
 
   if (!withdrawReserve || !repayReserve) {
