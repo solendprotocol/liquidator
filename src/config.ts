@@ -8,7 +8,7 @@ export const LENDING_MARKET_LEN = 290;
 export const ENDPOINTS = [
   {
     name: 'production',
-    endpoint: 'https://solend.rpcpool.com/a3e03ba77d5e870c8c694b19d61c',
+    endpoint: 'https://solana-api.projectserum.com',
   },
   {
     name: 'devnet',
