@@ -1,7 +1,9 @@
 import { ASSOCIATED_TOKEN_PROGRAM_ID, Token, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { Connection, PublicKey } from '@solana/web3.js';
 import BigNumber from 'bignumber.js';
-import { LiquidityTokenBean, MarketBean, ReserveBean } from 'global';
+import {
+  LiquidityTokenBean, MarketBean,
+} from 'global';
 import {
   ObligationParser, OBLIGATION_LEN,
 } from 'models/layouts/obligation';
@@ -81,7 +83,7 @@ export function getTokenInfoFromMarket(market: MarketBean, symbol: string) {
     symbol: liquidityToken.symbol,
     decimals: liquidityToken.decimals,
     mintAddress: liquidityToken.mint,
-    logo: liquidityToken.logo
+    logo: liquidityToken.logo,
   };
 }
 
@@ -119,9 +121,10 @@ function stripEnd(s: string, c: string) {
 }
 
 export function getProgramIdForCurrentDeployment() {
-  if (process.env.APP == "beta") {
+  if (process.env.APP === 'beta') {
     return 'BLendhFh4HGnycEDDFhbeFEUYLP4fXB5tTHMoTX8Dch5';
-  } else if (process.env.APP == "production") {
+  }
+  if (process.env.APP === 'production') {
     return 'So1endDq2YkqhipRh3WViPa8hdiSpxWy6z3Z6tMCpAo';
   }
   return 'So1endDq2YkqhipRh3WViPa8hdiSpxWy6z3Z6tMCpAo';

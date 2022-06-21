@@ -1,4 +1,3 @@
-import { findWhere } from 'underscore';
 import { parsePriceData } from '@pythnetwork/client';
 import {
   AggregatorState,
@@ -22,13 +21,13 @@ export type TokenOracleData = {
   price: BigNumber;
 };
 
-async function getTokenOracleData(connection:Connection, reserve:ReserveBean, market:MarketBean) {
+async function getTokenOracleData(connection: Connection, reserve: ReserveBean) {
   let price;
   const oracle = {
     priceAddress: reserve.pythOracle,
     switchboardFeedAddress: reserve.switchboardOracle,
-  }
-  
+  };
+
   if (oracle.priceAddress && oracle.priceAddress !== NULL_ORACLE) {
     const pricePublicKey = new PublicKey(oracle.priceAddress);
     const result = await connection.getAccountInfo(pricePublicKey);
@@ -61,6 +60,6 @@ async function getTokenOracleData(connection:Connection, reserve:ReserveBean, ma
 }
 
 export async function getTokensOracleData(connection: Connection, market: MarketBean) {
-  const promises: Promise<any>[] = market.reserves.map((reserve) => getTokenOracleData(connection, reserve, market));
-  return await Promise.all(promises);
+  const promises: Promise<any>[] = market.reserves.map((reserve) => getTokenOracleData(connection, reserve));
+  return Promise.all(promises);
 }

@@ -8,7 +8,9 @@ import {
   Transaction,
   TransactionInstruction,
 } from '@solana/web3.js';
-import { getTokenInfo, getTokenInfoFromMarket } from 'libs/utils';
+import {
+  getTokenInfoFromMarket,
+} from 'libs/utils';
 import { findWhere, map } from 'underscore';
 import { refreshReserveInstruction } from 'models/instructions/refreshReserve';
 import { LiquidateObligationAndRedeemReserveCollateral } from 'models/instructions/LiquidateObligationAndRedeemReserveCollateral';
@@ -35,7 +37,7 @@ export const liquidateAndRedeem = async (
     });
     const oracleInfo = {
       priceAddress: reserveInfo.pythOracle,
-      switchboardFeedAddress: reserveInfo.switchboardOracle
+      switchboardFeedAddress: reserveInfo.switchboardOracle,
     };
     const refreshReserveIx = refreshReserveInstruction(
       new PublicKey(reserveAddress),
@@ -61,17 +63,17 @@ export const liquidateAndRedeem = async (
     new PublicKey(repayTokenInfo.mintAddress),
     payer.publicKey,
   );
-  
+
   const reserveSymbolToReserveMap = new Map<string, ReserveBean>(
     lendingMarket.reserves.map((reserve) => [reserve.liquidityToken.symbol, reserve]),
   );
-  
-  const repayReserve: ReserveBean | undefined= reserveSymbolToReserveMap.get(repayTokenSymbol);
+
+  const repayReserve: ReserveBean | undefined = reserveSymbolToReserveMap.get(repayTokenSymbol);
   const withdrawReserve: ReserveBean | undefined = reserveSymbolToReserveMap.get(withdrawTokenSymbol);
   const withdrawTokenInfo = getTokenInfoFromMarket(lendingMarket, withdrawTokenSymbol);
 
   if (!withdrawReserve || !repayReserve) {
-    throw new Error("reserves are not identified");
+    throw new Error('reserves are not identified');
   }
 
   const rewardedWithdrawalCollateralAccount = await Token.getAssociatedTokenAddress(
