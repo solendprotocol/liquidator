@@ -31,12 +31,6 @@ export interface LiquidityTokenBean {
   volume24h: string;
 }
 
-export interface Config {
-  programID: string;
-  assets: Asset[];
-  oracles: Oracles;
-  markets: Market[];
-}
 export interface Asset {
   name: string;
   symbol: string;

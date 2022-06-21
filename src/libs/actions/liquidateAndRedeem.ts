@@ -13,7 +13,7 @@ import { findWhere, map } from 'underscore';
 import { refreshReserveInstruction } from 'models/instructions/refreshReserve';
 import { LiquidateObligationAndRedeemReserveCollateral } from 'models/instructions/LiquidateObligationAndRedeemReserveCollateral';
 import { refreshObligationInstruction } from 'models/instructions/refreshObligation';
-import { Config, Market, MarketBean, ReserveBean } from 'global';
+import { MarketBean, ReserveBean } from 'global';
 
 export const liquidateAndRedeem = async (
   connection: Connection,
@@ -61,10 +61,18 @@ export const liquidateAndRedeem = async (
     new PublicKey(repayTokenInfo.mintAddress),
     payer.publicKey,
   );
-
-  const repayReserve: ReserveBean = findWhere(lendingMarket.reserves, { asset: repayTokenSymbol });
-  const withdrawReserve: ReserveBean = findWhere(lendingMarket.reserves, { asset: withdrawTokenSymbol });
+  
+  const reserveSymbolToReserveMap = new Map<string, ReserveBean>(
+    lendingMarket.reserves.map((reserve) => [reserve.liquidityToken.symbol, reserve]),
+  );
+  
+  const repayReserve: ReserveBean | undefined= reserveSymbolToReserveMap.get(repayTokenSymbol);
+  const withdrawReserve: ReserveBean | undefined = reserveSymbolToReserveMap.get(withdrawTokenSymbol);
   const withdrawTokenInfo = getTokenInfoFromMarket(lendingMarket, withdrawTokenSymbol);
+
+  if (!withdrawReserve || !repayReserve) {
+    throw new Error("reserves are not identified");
+  }
 
   const rewardedWithdrawalCollateralAccount = await Token.getAssociatedTokenAddress(
     ASSOCIATED_TOKEN_PROGRAM_ID,

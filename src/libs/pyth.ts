@@ -6,7 +6,7 @@ import {
 import SwitchboardProgram from '@switchboard-xyz/sbv2-lite';
 import { Connection, PublicKey } from '@solana/web3.js';
 import BigNumber from 'bignumber.js';
-import { Config, MarketBean, OracleAsset, Reserve, ReserveBean } from 'global';
+import { MarketBean, ReserveBean } from 'global';
 
 const NULL_ORACLE = 'nu11111111111111111111111111111111111111111';
 const SWITCHBOARD_V1_ADDRESS = 'DtmE9D2CSB4L5D6A15mraeEjrGMm6auWVzgaD8hK2tZM';

@@ -4,7 +4,6 @@ import {
 } from '@solana/web3.js';
 import BN from 'bn.js';
 import * as BufferLayout from 'buffer-layout';
-import { Config } from 'global';
 import * as Layout from 'libs/layout';
 import { getProgramIdForCurrentDeployment } from 'libs/utils';
 import { LendingInstruction } from './instruction';

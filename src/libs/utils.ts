@@ -1,7 +1,7 @@
 import { ASSOCIATED_TOKEN_PROGRAM_ID, Token, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { Connection, PublicKey } from '@solana/web3.js';
 import BigNumber from 'bignumber.js';
-import { Config, LiquidityTokenBean, MarketBean, Reserve, ReserveBean } from 'global';
+import { LiquidityTokenBean, MarketBean, ReserveBean } from 'global';
 import {
   ObligationParser, OBLIGATION_LEN,
 } from 'models/layouts/obligation';
@@ -12,14 +12,14 @@ export const WAD = new BigNumber(`1${''.padEnd(18, '0')}`);
 export const U64_MAX = '18446744073709551615';
 
 // Converts amount to human (rebase with decimals)
-export function toHuman(config: Config, amount: string, symbol: string) {
-  const decimals = getDecimals(config, symbol);
+export function toHuman(market: MarketBean, amount: string, symbol: string) {
+  const decimals = getDecimals(market, symbol);
   return toHumanDec(amount, decimals);
 }
 
-export function toBaseUnit(config: Config, amount: string, symbol: string) {
+export function toBaseUnit(market: MarketBean, amount: string, symbol: string) {
   if (amount === U64_MAX) return amount;
-  const decimals = getDecimals(config, symbol);
+  const decimals = getDecimals(market, symbol);
   return toBaseUnitDec(amount, decimals);
 }
 
@@ -57,14 +57,14 @@ function toBaseUnitDec(amount: string, decimals: number) {
   );
 }
 
-function getDecimals(config: Config, symbol: string) {
-  const tokenInfo = getTokenInfo(config, symbol);
+function getDecimals(market: MarketBean, symbol: string) {
+  const tokenInfo = getTokenInfo(market, symbol);
   return tokenInfo.decimals;
 }
 
 // Returns token info from config
-export function getTokenInfo(config: Config, symbol: string) {
-  const tokenInfo = findWhere(config.assets, { symbol });
+export function getTokenInfo(market: MarketBean, symbol: string) {
+  const tokenInfo = findWhere(market.reserves.map((reserve) => reserve.liquidityToken), { symbol });
   if (!tokenInfo) {
     throw new Error(`Could not find ${symbol} in config.assets`);
   }
@@ -72,9 +72,8 @@ export function getTokenInfo(config: Config, symbol: string) {
 }
 
 export function getTokenInfoFromMarket(market: MarketBean, symbol: string) {
-  const reserve: ReserveBean = findWhere(market.reserves, { liquidityToken: { symbol } });
-  const { liquidityToken } = reserve;
-  if (!reserve) {
+  const liquidityToken: LiquidityTokenBean = findWhere(market.reserves.map((reserve) => reserve.liquidityToken), { symbol });
+  if (!liquidityToken) {
     throw new Error(`Could not find ${symbol} in config.assets`);
   }
   return {
@@ -169,16 +168,7 @@ export async function getReserves(connection: Connection, lendingMarketAddr) {
   return resp.map((account) => ReserveParser(account.pubkey, account.account));
 }
 
-export async function getCollateralBalances(connection: Connection, config: Config, wallet, reserves: Reserve[]) {
-  const promises: Promise<any>[] = [];
-  reserves.forEach((reserve) => {
-    promises.push(getWalletTokenData(connection, config, wallet, reserve.collateralMintAddress, reserve.asset));
-  });
-  const collateralBalances = await Promise.all(promises);
-  return collateralBalances;
-}
-
-export async function getWalletTokenData(connection: Connection, config: Config, wallet, mintAddress, symbol) {
+export async function getWalletTokenData(connection: Connection, market: MarketBean, wallet, mintAddress, symbol) {
   const token = new Token(
     connection,
     new PublicKey(mintAddress),
@@ -194,7 +184,7 @@ export async function getWalletTokenData(connection: Connection, config: Config,
 
   try {
     const result = await token.getAccountInfo(userTokenAccount);
-    const balance = toHuman(config, result!.amount.toString(), symbol);
+    const balance = toHuman(market, result!.amount.toString(), symbol);
     const balanceBase = result!.amount.toString();
 
     return {

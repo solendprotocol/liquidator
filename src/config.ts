@@ -1,6 +1,6 @@
 /* eslint-disable no-loop-func */
 import got from 'got';
-import { Config, MarketBean } from 'global';
+import { MarketBean } from 'global';
 
 export const OBLIGATION_LEN = 1300;
 export const RESERVE_LEN = 619;
@@ -50,28 +50,6 @@ export async function getMarkets(): Promise<MarketBean[]> {
   } while (attemptCount < maxAttempt);
 
   throw new Error('failed to fetch /v1/markets');
-}
-
-export async function getConfig(): Promise<Config> {
-  let attemptCount = 0;
-  let backoffFactor = 1;
-  const maxAttempt = 10;
-
-  do {
-    try {
-      if (attemptCount > 0) {
-        await new Promise((resolve) => setTimeout(resolve, backoffFactor * 10));
-        backoffFactor *= 2;
-      }
-      attemptCount += 1;
-      const resp = await got(`https://api.solend.fi/v1/config?deployment=${getApp()}`, { json: true });
-      return resp.body as Config;
-    } catch (error) {
-      console.error('error fetching /v1/config: ', error);
-    }
-  } while (attemptCount < maxAttempt);
-
-  throw new Error('failed to fetch /v1/config');
 }
 
 export const network = getApp();

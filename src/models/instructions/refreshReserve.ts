@@ -4,7 +4,6 @@ import {
   TransactionInstruction,
 } from '@solana/web3.js';
 import * as BufferLayout from 'buffer-layout';
-import { Config } from 'global';
 import { getProgramIdForCurrentDeployment } from 'libs/utils';
 import { LendingInstruction } from './instruction';
 

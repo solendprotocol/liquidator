@@ -14,13 +14,12 @@ import { getTokensOracleData } from 'libs/pyth';
 import { calculateRefreshedObligation } from 'libs/refreshObligation';
 import { readSecret } from 'libs/secret';
 import { liquidateAndRedeem } from 'libs/actions/liquidateAndRedeem';
-import { clusterUrl, getConfig, getMarkets } from './config';
+import { clusterUrl, getMarkets } from './config';
 
 dotenv.config();
 
 async function runLiquidator() {
   const markets = await getMarkets();
-  const config = await getConfig();
   const connection = new Connection(clusterUrl!.endpoint, 'confirmed');
 
   // liquidator's keypair.
@@ -89,7 +88,7 @@ async function runLiquidator() {
               market address: ${market.address}`);
 
             // get wallet balance for selected borrow token
-            const { balanceBase } = await getWalletTokenData(connection, config, payer, selectedBorrow.mintAddress, selectedBorrow.symbol);
+            const { balanceBase } = await getWalletTokenData(connection, market, payer, selectedBorrow.mintAddress, selectedBorrow.symbol);
             if (balanceBase === 0) {
               console.log(`insufficient ${selectedBorrow.symbol} to liquidate obligation ${obligation.pubkey.toString()} in market: ${market.address}`);
               break;
