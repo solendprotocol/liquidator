@@ -1,9 +1,36 @@
-export interface Config {
-  programID: string;
-  assets: Asset[];
-  oracles: Oracles;
-  markets: Market[];
+export interface MarketConfig {
+  name: string;
+  isPrimary: boolean;
+  description: string;
+  creator: string;
+  address: string;
+  authorityAddress: string;
+  owner: string;
+  reserves: MarketConfigReserve[];
 }
+
+export interface MarketConfigReserve {
+  liquidityToken: LiquidityToken;
+  pythOracle: string;
+  switchboardOracle: string;
+  address: string;
+  collateralMintAddress: string;
+  collateralSupplyAddress: string;
+  liquidityAddress: string;
+  liquidityFeeReceiverAddress: string;
+  userSupplyCap: number;
+}
+
+export interface LiquidityToken {
+  coingeckoID: string;
+  decimals: number;
+  logo: string;
+  mint: string;
+  name: string;
+  symbol: string;
+  volume24h: string;
+}
+
 export interface Asset {
   name: string;
   symbol: string;

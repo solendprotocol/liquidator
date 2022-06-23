@@ -1,7 +1,9 @@
 import { ASSOCIATED_TOKEN_PROGRAM_ID, Token, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { Connection, PublicKey } from '@solana/web3.js';
 import BigNumber from 'bignumber.js';
-import { Config, Reserve } from 'global';
+import {
+  LiquidityToken, MarketConfig,
+} from 'global';
 import {
   ObligationParser, OBLIGATION_LEN,
 } from 'models/layouts/obligation';
@@ -12,14 +14,14 @@ export const WAD = new BigNumber(`1${''.padEnd(18, '0')}`);
 export const U64_MAX = '18446744073709551615';
 
 // Converts amount to human (rebase with decimals)
-export function toHuman(config: Config, amount: string, symbol: string) {
-  const decimals = getDecimals(config, symbol);
+export function toHuman(market: MarketConfig, amount: string, symbol: string) {
+  const decimals = getDecimals(market, symbol);
   return toHumanDec(amount, decimals);
 }
 
-export function toBaseUnit(config: Config, amount: string, symbol: string) {
+export function toBaseUnit(market: MarketConfig, amount: string, symbol: string) {
   if (amount === U64_MAX) return amount;
-  const decimals = getDecimals(config, symbol);
+  const decimals = getDecimals(market, symbol);
   return toBaseUnitDec(amount, decimals);
 }
 
@@ -57,18 +59,32 @@ function toBaseUnitDec(amount: string, decimals: number) {
   );
 }
 
-function getDecimals(config: Config, symbol: string) {
-  const tokenInfo = getTokenInfo(config, symbol);
+function getDecimals(market: MarketConfig, symbol: string) {
+  const tokenInfo = getTokenInfo(market, symbol);
   return tokenInfo.decimals;
 }
 
 // Returns token info from config
-export function getTokenInfo(config: Config, symbol: string) {
-  const tokenInfo = findWhere(config.assets, { symbol });
+export function getTokenInfo(market: MarketConfig, symbol: string) {
+  const tokenInfo = findWhere(market.reserves.map((reserve) => reserve.liquidityToken), { symbol });
   if (!tokenInfo) {
     throw new Error(`Could not find ${symbol} in config.assets`);
   }
   return tokenInfo;
+}
+
+export function getTokenInfoFromMarket(market: MarketConfig, symbol: string) {
+  const liquidityToken: LiquidityToken = findWhere(market.reserves.map((reserve) => reserve.liquidityToken), { symbol });
+  if (!liquidityToken) {
+    throw new Error(`Could not find ${symbol} in config.assets`);
+  }
+  return {
+    name: liquidityToken.name,
+    symbol: liquidityToken.symbol,
+    decimals: liquidityToken.decimals,
+    mintAddress: liquidityToken.mint,
+    logo: liquidityToken.logo,
+  };
 }
 
 export function wait(ms: number) {
@@ -104,14 +120,23 @@ function stripEnd(s: string, c: string) {
   return s.slice(0, i + 1);
 }
 
-export async function getObligations(connection: Connection, config: Config, lendingMarket) {
-  const resp = await connection.getProgramAccounts(new PublicKey(config.programID), {
+export function getProgramIdForCurrentDeployment(): string {
+  return {
+    'beta': 'BLendhFh4HGnycEDDFhbeFEUYLP4fXB5tTHMoTX8Dch5',
+    'production': 'So1endDq2YkqhipRh3WViPa8hdiSpxWy6z3Z6tMCpAo',
+    'staging': 'ALend7Ketfx5bxh6ghsCDXAoDrhvEmsXT3cynB6aPLgx',
+  }[process.env.APP] || 'So1endDq2YkqhipRh3WViPa8hdiSpxWy6z3Z6tMCpAo';
+}
+
+export async function getObligations(connection: Connection, lendingMarketAddr) {
+  const programID = getProgramIdForCurrentDeployment();
+  const resp = await connection.getProgramAccounts(new PublicKey(programID), {
     commitment: connection.commitment,
     filters: [
       {
         memcmp: {
           offset: 10,
-          bytes: lendingMarket,
+          bytes: lendingMarketAddr,
         },
       },
       {
@@ -123,14 +148,15 @@ export async function getObligations(connection: Connection, config: Config, len
   return resp.map((account) => ObligationParser(account.pubkey, account.account));
 }
 
-export async function getReserves(connection: Connection, config: Config, lendingMarket) {
-  const resp = await connection.getProgramAccounts(new PublicKey(config.programID), {
+export async function getReserves(connection: Connection, lendingMarketAddr) {
+  const programID = getProgramIdForCurrentDeployment();
+  const resp = await connection.getProgramAccounts(new PublicKey(programID), {
     commitment: connection.commitment,
     filters: [
       {
         memcmp: {
           offset: 10,
-          bytes: lendingMarket,
+          bytes: lendingMarketAddr,
         },
       },
       {
@@ -143,16 +169,7 @@ export async function getReserves(connection: Connection, config: Config, lendin
   return resp.map((account) => ReserveParser(account.pubkey, account.account));
 }
 
-export async function getCollateralBalances(connection: Connection, config: Config, wallet, reserves: Reserve[]) {
-  const promises: Promise<any>[] = [];
-  reserves.forEach((reserve) => {
-    promises.push(getWalletTokenData(connection, config, wallet, reserve.collateralMintAddress, reserve.asset));
-  });
-  const collateralBalances = await Promise.all(promises);
-  return collateralBalances;
-}
-
-export async function getWalletTokenData(connection: Connection, config: Config, wallet, mintAddress, symbol) {
+export async function getWalletTokenData(connection: Connection, market: MarketConfig, wallet, mintAddress, symbol) {
   const token = new Token(
     connection,
     new PublicKey(mintAddress),
@@ -168,7 +185,7 @@ export async function getWalletTokenData(connection: Connection, config: Config,
 
   try {
     const result = await token.getAccountInfo(userTokenAccount);
-    const balance = toHuman(config, result!.amount.toString(), symbol);
+    const balance = toHuman(market, result!.amount.toString(), symbol);
     const balanceBase = result!.amount.toString();
 
     return {

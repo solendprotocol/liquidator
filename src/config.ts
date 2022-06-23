@@ -1,6 +1,6 @@
 /* eslint-disable no-loop-func */
 import got from 'got';
-import { Config } from 'global';
+import { MarketConfig } from 'global';
 
 export const OBLIGATION_LEN = 1300;
 export const RESERVE_LEN = 619;
@@ -25,7 +25,7 @@ function getApp() {
   return app;
 }
 
-export async function getConfig(): Promise<Config> {
+export async function getMarkets(): Promise<MarketConfig[]> {
   let attemptCount = 0;
   let backoffFactor = 1;
   const maxAttempt = 10;
@@ -37,14 +37,15 @@ export async function getConfig(): Promise<Config> {
         backoffFactor *= 2;
       }
       attemptCount += 1;
-      const resp = await got(`https://api.solend.fi/v1/config?deployment=${getApp()}`, { json: true });
-      return resp.body as Config;
+      const resp = await got(`https://api.solend.fi/v1/markets/configs?scope=solend&deployment=${getApp()}`, { json: true });
+      const data = resp.body as MarketConfig[];
+      return data;
     } catch (error) {
-      console.error('error fetching /v1/config: ', error);
+      console.error('error fetching /v1/markets/configs ', error);
     }
   } while (attemptCount < maxAttempt);
 
-  throw new Error('failed to fetch /v1/config');
+  throw new Error('failed to fetch /v1/markets/configs');
 }
 
 export const network = getApp();

@@ -8,21 +8,22 @@ import {
   Transaction,
   TransactionInstruction,
 } from '@solana/web3.js';
-import { getTokenInfo } from 'libs/utils';
+import {
+  getTokenInfoFromMarket,
+} from 'libs/utils';
 import { findWhere, map } from 'underscore';
 import { refreshReserveInstruction } from 'models/instructions/refreshReserve';
 import { LiquidateObligationAndRedeemReserveCollateral } from 'models/instructions/LiquidateObligationAndRedeemReserveCollateral';
 import { refreshObligationInstruction } from 'models/instructions/refreshObligation';
-import { Config, Market } from 'global';
+import { MarketConfig, MarketConfigReserve } from 'global';
 
 export const liquidateAndRedeem = async (
   connection: Connection,
-  config: Config,
   payer: Account,
   liquidityAmount: number | string,
   repayTokenSymbol: string,
   withdrawTokenSymbol: string,
-  lendingMarket: Market,
+  lendingMarket: MarketConfig,
   obligation: any,
 ) => {
   const ixs: TransactionInstruction[] = [];
@@ -31,30 +32,25 @@ export const liquidateAndRedeem = async (
   const borrowReserves = map(obligation.info.borrows, (borrow) => borrow.borrowReserve);
   const uniqReserveAddresses = [...new Set<String>(map(depositReserves.concat(borrowReserves), (reserve) => reserve.toString()))];
   uniqReserveAddresses.forEach((reserveAddress) => {
-    const reserveInfo = findWhere(lendingMarket!.reserves, {
+    const reserveInfo: MarketConfigReserve = findWhere(lendingMarket!.reserves, {
       address: reserveAddress,
     });
-    const oracleInfo = findWhere(config.oracles.assets, {
-      asset: reserveInfo!.asset,
-    });
     const refreshReserveIx = refreshReserveInstruction(
-      config,
       new PublicKey(reserveAddress),
-      new PublicKey(oracleInfo!.priceAddress),
-      new PublicKey(oracleInfo!.switchboardFeedAddress),
+      new PublicKey(reserveInfo.pythOracle),
+      new PublicKey(reserveInfo.switchboardOracle),
     );
     ixs.push(refreshReserveIx);
   });
 
   const refreshObligationIx = refreshObligationInstruction(
-    config,
     obligation.pubkey,
     depositReserves,
     borrowReserves,
   );
   ixs.push(refreshObligationIx);
 
-  const repayTokenInfo = getTokenInfo(config, repayTokenSymbol);
+  const repayTokenInfo = getTokenInfoFromMarket(lendingMarket, repayTokenSymbol);
 
   // get account that will be repaying the reserve liquidity
   const repayAccount = await Token.getAssociatedTokenAddress(
@@ -64,9 +60,17 @@ export const liquidateAndRedeem = async (
     payer.publicKey,
   );
 
-  const repayReserve = findWhere(lendingMarket.reserves, { asset: repayTokenSymbol });
-  const withdrawReserve = findWhere(lendingMarket.reserves, { asset: withdrawTokenSymbol });
-  const withdrawTokenInfo = getTokenInfo(config, withdrawTokenSymbol);
+  const reserveSymbolToReserveMap = new Map<string, MarketConfigReserve>(
+    lendingMarket.reserves.map((reserve) => [reserve.liquidityToken.symbol, reserve]),
+  );
+
+  const repayReserve: MarketConfigReserve | undefined = reserveSymbolToReserveMap.get(repayTokenSymbol);
+  const withdrawReserve: MarketConfigReserve | undefined = reserveSymbolToReserveMap.get(withdrawTokenSymbol);
+  const withdrawTokenInfo = getTokenInfoFromMarket(lendingMarket, withdrawTokenSymbol);
+
+  if (!withdrawReserve || !repayReserve) {
+    throw new Error('reserves are not identified');
+  }
 
   const rewardedWithdrawalCollateralAccount = await Token.getAssociatedTokenAddress(
     ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -81,7 +85,7 @@ export const liquidateAndRedeem = async (
     const createUserCollateralAccountIx = Token.createAssociatedTokenAccountInstruction(
       ASSOCIATED_TOKEN_PROGRAM_ID,
       TOKEN_PROGRAM_ID,
-      withdrawReserve.collateralMintAddress,
+      new PublicKey(withdrawReserve.collateralMintAddress),
       rewardedWithdrawalCollateralAccount,
       payer.publicKey,
       payer.publicKey,
@@ -112,7 +116,6 @@ export const liquidateAndRedeem = async (
 
   ixs.push(
     LiquidateObligationAndRedeemReserveCollateral(
-      config,
       liquidityAmount,
       repayAccount,
       rewardedWithdrawalCollateralAccount,

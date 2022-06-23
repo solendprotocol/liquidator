@@ -14,12 +14,12 @@ import { getTokensOracleData } from 'libs/pyth';
 import { calculateRefreshedObligation } from 'libs/refreshObligation';
 import { readSecret } from 'libs/secret';
 import { liquidateAndRedeem } from 'libs/actions/liquidateAndRedeem';
-import { clusterUrl, getConfig } from './config';
+import { clusterUrl, getMarkets } from './config';
 
 dotenv.config();
 
 async function runLiquidator() {
-  const config = await getConfig();
+  const markets = await getMarkets();
   const connection = new Connection(clusterUrl!.endpoint, 'confirmed');
 
   // liquidator's keypair.
@@ -32,15 +32,15 @@ async function runLiquidator() {
   `);
 
   for (let epoch = 0; ; epoch += 1) {
-    for (const market of config.markets) {
+    for (const market of markets) {
       // Target specific market if MARKET is specified in docker-compose.yaml
       if (process.env.MARKET && process.env.MARKET !== market.address) {
         continue;
       }
 
-      const tokensOracle = await getTokensOracleData(connection, config, market.reserves);
-      const allObligations = await getObligations(connection, config, market.address);
-      const allReserves = await getReserves(connection, config, market.address);
+      const tokensOracle = await getTokensOracleData(connection, market);
+      const allObligations = await getObligations(connection, market.address);
+      const allReserves = await getReserves(connection, market.address);
 
       for (let obligation of allObligations) {
         try {
@@ -88,7 +88,7 @@ async function runLiquidator() {
               market address: ${market.address}`);
 
             // get wallet balance for selected borrow token
-            const { balanceBase } = await getWalletTokenData(connection, config, payer, selectedBorrow.mintAddress, selectedBorrow.symbol);
+            const { balanceBase } = await getWalletTokenData(connection, market, payer, selectedBorrow.mintAddress, selectedBorrow.symbol);
             if (balanceBase === 0) {
               console.log(`insufficient ${selectedBorrow.symbol} to liquidate obligation ${obligation.pubkey.toString()} in market: ${market.address}`);
               break;
@@ -102,7 +102,6 @@ async function runLiquidator() {
             // 50% val of all borrowed assets.
             await liquidateAndRedeem(
               connection,
-              config,
               payer,
               balanceBase,
               selectedBorrow.symbol,
@@ -124,7 +123,7 @@ async function runLiquidator() {
 
       // Throttle to avoid rate limiter
       if (process.env.THROTTLE) {
-        await wait(process.env.THROTTLE);
+        await wait(Number(process.env.THROTTLE));
       }
     }
   }
