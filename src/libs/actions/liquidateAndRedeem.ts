@@ -35,14 +35,10 @@ export const liquidateAndRedeem = async (
     const reserveInfo: MarketConfigReserve = findWhere(lendingMarket!.reserves, {
       address: reserveAddress,
     });
-    const oracleInfo = {
-      priceAddress: reserveInfo.pythOracle,
-      switchboardFeedAddress: reserveInfo.switchboardOracle,
-    };
     const refreshReserveIx = refreshReserveInstruction(
       new PublicKey(reserveAddress),
-      new PublicKey(oracleInfo!.priceAddress),
-      new PublicKey(oracleInfo!.switchboardFeedAddress),
+      new PublicKey(reserveInfo.pythOracle),
+      new PublicKey(reserveInfo.switchboardOracle),
     );
     ixs.push(refreshReserveIx);
   });

@@ -25,10 +25,6 @@ function getApp() {
   return app;
 }
 
-export async function deserializeMarkets(data: MarketConfig[]): Promise<MarketConfig[]> {
-  return data;
-}
-
 export async function getMarkets(): Promise<MarketConfig[]> {
   let attemptCount = 0;
   let backoffFactor = 1;
@@ -43,7 +39,7 @@ export async function getMarkets(): Promise<MarketConfig[]> {
       attemptCount += 1;
       const resp = await got(`https://api.solend.fi/v1/markets/configs?deployment=${getApp()}`, { json: true });
       const data = resp.body as MarketConfig[];
-      return await deserializeMarkets(data);
+      return data;
     } catch (error) {
       console.error('error fetching /v1/markets: ', error);
     }
