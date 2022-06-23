@@ -49,7 +49,7 @@ export async function getMarkets(): Promise<MarketConfig[]> {
     }
   } while (attemptCount < maxAttempt);
 
-  throw new Error('failed to fetch /v1/markets');
+  throw new Error('failed to fetch /v1/markets/configs');
 }
 
 export const network = getApp();
