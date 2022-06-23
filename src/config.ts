@@ -37,15 +37,15 @@ export async function getMarkets(): Promise<MarketConfig[]> {
         backoffFactor *= 2;
       }
       attemptCount += 1;
-      const resp = await got(`https://api.solend.fi/v1/markets/configs?deployment=${getApp()}`, { json: true });
+      const resp = await got(`https://api.solend.fi/v1/markets/configs?scope=solend&deployment=${getApp()}`, { json: true });
       const data = resp.body as MarketConfig[];
       return data;
     } catch (error) {
-      console.error('error fetching /v1/markets: ', error);
+      console.error('error fetching /v1/markets/configs ', error);
     }
   } while (attemptCount < maxAttempt);
 
-  throw new Error('failed to fetch /v1/markets');
+  throw new Error('failed to fetch /v1/markets/configs');
 }
 
 export const network = getApp();
