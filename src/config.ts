@@ -45,7 +45,7 @@ export async function getMarkets(): Promise<MarketConfig[]> {
       const data = resp.body as MarketConfig[];
       return await deserializeMarkets(data);
     } catch (error) {
-      console.error('error fetching /v1/markets: ', error);
+      console.error('error fetching /v1/markets/configs ', error);
     }
   } while (attemptCount < maxAttempt);
 
