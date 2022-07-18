@@ -62,3 +62,8 @@ export interface Reserve {
   liquidityFeeReceiverAddress: string;
   userSupplyCap?: number;
 }
+
+export interface TokenCount {
+  symbol: String,
+  target: number,
+}

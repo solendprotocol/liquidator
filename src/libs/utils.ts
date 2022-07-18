@@ -1,14 +1,17 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable no-restricted-syntax */
 import { ASSOCIATED_TOKEN_PROGRAM_ID, Token, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { Connection, PublicKey } from '@solana/web3.js';
 import BigNumber from 'bignumber.js';
 import {
-  LiquidityToken, MarketConfig,
+  LiquidityToken, MarketConfig, TokenCount,
 } from 'global';
 import {
   ObligationParser, OBLIGATION_LEN,
 } from 'models/layouts/obligation';
 import { ReserveParser, RESERVE_LEN } from 'models/layouts/reserve';
 import { findWhere } from 'underscore';
+import { TokenOracleData } from './pyth';
 
 export const WAD = new BigNumber(`1${''.padEnd(18, '0')}`);
 export const U64_MAX = '18446744073709551615';
@@ -122,10 +125,10 @@ function stripEnd(s: string, c: string) {
 
 export function getProgramIdForCurrentDeployment(): string {
   return {
-    'beta': 'BLendhFh4HGnycEDDFhbeFEUYLP4fXB5tTHMoTX8Dch5',
-    'production': 'So1endDq2YkqhipRh3WViPa8hdiSpxWy6z3Z6tMCpAo',
-    'staging': 'ALend7Ketfx5bxh6ghsCDXAoDrhvEmsXT3cynB6aPLgx',
-  }[process.env.APP] || 'So1endDq2YkqhipRh3WViPa8hdiSpxWy6z3Z6tMCpAo';
+    beta: 'BLendhFh4HGnycEDDFhbeFEUYLP4fXB5tTHMoTX8Dch5',
+    production: 'So1endDq2YkqhipRh3WViPa8hdiSpxWy6z3Z6tMCpAo',
+    staging: 'ALend7Ketfx5bxh6ghsCDXAoDrhvEmsXT3cynB6aPLgx',
+  }[process.env.APP || 'production'] || 'So1endDq2YkqhipRh3WViPa8hdiSpxWy6z3Z6tMCpAo';
 }
 
 export async function getObligations(connection: Connection, lendingMarketAddr) {
@@ -169,6 +172,18 @@ export async function getReserves(connection: Connection, lendingMarketAddr) {
   return resp.map((account) => ReserveParser(account.pubkey, account.account));
 }
 
+export async function getWalletBalances(connection, wallet, tokensOracle, market) {
+  const promises: Promise<any>[] = [];
+  for (const [key, value] of Object.entries(tokensOracle)) {
+    if (value) {
+      const tokenOracleData = value as TokenOracleData;
+      promises.push(getWalletTokenData(connection, market, wallet, tokenOracleData.mintAddress, tokenOracleData.symbol));
+    }
+  }
+  const walletBalances = await Promise.all(promises);
+  return walletBalances;
+}
+
 export async function getWalletTokenData(connection: Connection, market: MarketConfig, wallet, mintAddress, symbol) {
   const token = new Token(
     connection,
@@ -200,4 +215,20 @@ export async function getWalletTokenData(connection: Connection, market: MarketC
       symbol,
     };
   }
+}
+
+export function getWalletDistTarget() {
+  const target: TokenCount[] = [];
+  const targetRaw = process.env.TARGETS || '';
+
+  const targetDistributions = targetRaw.split(' ');
+  for (const dist of targetDistributions) {
+    const tokens = dist.split(':');
+    const asset = tokens[0];
+    const unitAmount = tokens[1];
+
+    target.push({ symbol: asset, target: parseFloat(unitAmount) });
+  }
+
+  return target;
 }
