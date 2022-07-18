@@ -3,41 +3,53 @@
 import {
   Account,
   Connection,
+  Keypair,
   PublicKey,
 } from '@solana/web3.js';
 import dotenv from 'dotenv';
 import { ObligationParser } from 'models/layouts/obligation';
 import {
-  getObligations, getReserves, getWalletTokenData, wait,
+  getObligations, getReserves, getWalletBalances, getWalletDistTarget, getWalletTokenData, wait,
 } from 'libs/utils';
 import { getTokensOracleData } from 'libs/pyth';
 import { calculateRefreshedObligation } from 'libs/refreshObligation';
 import { readSecret } from 'libs/secret';
 import { liquidateAndRedeem } from 'libs/actions/liquidateAndRedeem';
-import { clusterUrl, getMarkets } from './config';
+import { rebalanceWallet } from 'libs/rebalanceWallet';
+import { Jupiter } from '@jup-ag/core';
+import { getMarkets } from './config';
 
 dotenv.config();
 
 async function runLiquidator() {
+  const rpcEndpoint = process.env.RPC_ENDPOINT;
+  if (!rpcEndpoint) {
+    throw new Error('Pls provide an private RPC endpoint in docker-compose.yaml');
+  }
   const markets = await getMarkets();
-  const connection = new Connection(clusterUrl!.endpoint, 'confirmed');
-
+  const connection = new Connection(rpcEndpoint, 'confirmed');
   // liquidator's keypair.
   const payer = new Account(JSON.parse(readSecret('keypair')));
+  const jupiter = await Jupiter.load({
+    connection,
+    cluster: 'mainnet-beta',
+    user: Keypair.fromSecretKey(payer.secretKey),
+    wrapUnwrapSOL: false,
+  });
+  const target = getWalletDistTarget();
 
   console.log(`
     app: ${process.env.APP}
-    clusterUrl: ${clusterUrl!.endpoint}
+    rpc: ${rpcEndpoint}
     wallet: ${payer.publicKey.toBase58()}
+    auto-rebalancing: ${target.length > 0 ? 'ON' : 'OFF'}
+    rebalancingDistribution: ${process.env.TARGETS}
+    
+    Running against ${markets.length} pools
   `);
 
   for (let epoch = 0; ; epoch += 1) {
     for (const market of markets) {
-      // Target specific market if MARKET is specified in docker-compose.yaml
-      if (process.env.MARKET && process.env.MARKET !== market.address) {
-        continue;
-      }
-
       const tokensOracle = await getTokensOracleData(connection, market);
       const allObligations = await getObligations(connection, market.address);
       const allReserves = await getReserves(connection, market.address);
@@ -119,6 +131,11 @@ async function runLiquidator() {
           console.error(`error liquidating ${obligation!.pubkey.toString()}: `, err);
           continue;
         }
+      }
+
+      if (target.length > 0) {
+        const walletBalances = await getWalletBalances(connection, payer, tokensOracle, market);
+        await rebalanceWallet(connection, payer, jupiter, tokensOracle, walletBalances, target);
       }
 
       // Throttle to avoid rate limiter

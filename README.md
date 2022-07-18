@@ -1,18 +1,31 @@
 # Solend-liquidator-bot
 
-open-source version of a liquidation bot running against Solend
+Table of contents
+  * [Overview](#overview)
+  * [Basic Usage](#basic-usage)
+  * [FAQ](#faq)
+    + [Enabling wallet rebalancing](#enabling-wallet-rebalancing)
+    + [Rebalance padding](#rebalance-padding)
+    + [Target specific markets](#target-specific-markets)
+    + [Tweak throttling](#tweak-throttling)
+  * [Support](#support)
 
 ## Overview
 
-The Solend liquidator bot identifies and liquidates overexposed obligations. Solend awards liquidators a 5% bonus on each liquidation. See [Solend params](https://docs.solend.fi/protocol/parameters) for the most up-to-date parameters on each asset. This repo is intended as a starting point for the Solend community to build their liquidator bots.
+The Solend liquidator bot identifies and liquidates overexposed obligations. Solend awards liquidators a 5-20% bonus on each liquidation. Visit [Solend documentation](https://docs.solend.fi/protocol/parameters) for the parameters on each asset. This repo is intended as a starting point for the Solend community to build their liquidator bots.
 
-## Usage
+## Basic Usage
 
-A file system wallet funded with SOL, USDC, ETH, SRM BTC is required to liquidate obligations. Users will need to manually rebalance wallet whenever a token is depleted.
+A funded file system wallet is required to liquidate obligations. Users may choose to [enable auto rebalancing](#enabling-wallet-rebalancing) or manually rebalance after tokens have been used to repay a debt.
 
-1. Install [docker engine](https://docs.docker.com/get-docker/) and [docker-compose](https://docs.docker.com/compose/install/)
+1. A private RPC is required as public RPCs have strict rate limiting and response size restrictions. You can get a private rpc set up in minutes through [Figment](https://www.figment.io/datahub/solana) which provides a free tier of 3m request/month and the PRO tier costs only $50/month. Set your private RPC in `docker-compose.yaml`
+```
+- RPC_ENDPOINT=<YOUR PRIVATE RPC ENDPOINT>
+```
 
-2. Update [file system wallet](https://docs.solana.com/wallet-guide/file-system-wallet) path in docker-compose.yaml.
+2. Install [docker engine](https://docs.docker.com/get-docker/) and [docker-compose](https://docs.docker.com/compose/install/)
+
+3. Update [file system wallet](https://docs.solana.com/wallet-guide/file-system-wallet) path in docker-compose.yaml.
 
 ```
 secrets:
@@ -20,35 +33,53 @@ secrets:
     file: <PATH TO KEYPAIR WALLET THAT WILL BE LIQUIDATING UNDERWATER OBLIGATIONS>
 ```
 
-3. Build and run liquidator for all pools
+4. Build and run liquidator
 
 ```
 docker-compose up --build
 ```
 
-To run liquidator in background:
+P.S. To run liquidator in background:
 ```
 docker-compose up --build -d
 ```
 
-
 ## FAQ
-1. How to target a specific market?
-The liquidator by default checks the health of all markets (aka isolated pools) e.g main, turbo sol, dog, invictus, etc... If you have the necessary assets in your wallet, the liquidator will attempt to liquidate the unhealhty obligation, otherwise, it simply tells you "insufficient fund" and move on to check the next obligation. If you want to target a specific market, you just need to specify the MARKET param in `docker-compose.yaml` with the market address. You may find all the market address for solend in `https://api.solend.fi/v1/config?deployment=production` 
+### Enabling wallet rebalancing
+The auto rebalancing has to be explicitly enabled by specifying the token distribution in `docker-compose.yaml`. Under the hood, the liquidator uses [Jupiter](https://docs.jup.ag/) to rebalance against the USDC<>token pair. Make sure your wallet has an excess amount of USDC to cover liquidation of USDC positions along with rebalancing of other assets. A rule of thumb of USDC to hold is (targeted USDC amount * 1.3). Note that since USDC is base token, we will only use USDC to purchase other tokens when required but not use other tokens to purchase USDC when USDC holdings is below target value. The rebalancer neglets the USDC target value and its only listed to ensure users deposit USDC. Nonetheless, do not remove USDC from the target distribution.
 
-2. How to change RPC network
-By default we use the public solana rpc which is slow and highly rate limited. We strongly suggest using a custom RPC network e.g rpcpool, figment, etc.. so your bot may be more competitive and win some liquidations. Once you have your rpc url, you may specify it in `config.ts`
+Steps:
+
+1. In `docker-compose.yaml`, uncomment the following line
 ```
-{
-  name: 'production',
-  endpoint: '<YOUR CUSTOM RPC NETWORK URL>',
-},
+# - TARGETS=USDC:100 USDT:5 scnSOL:0.5 SOL:0.5
 ```
 
-3. How to tweak throttling?
-If you have a custom rpc network, you would want to disable the default throttling we have set up by specifying the THROTTLE environment variable in `docker-compose.yaml` to 0
+2. Specify the distribution you would like. The following format is required:
 ```
-  - THROTTLE=0 # Throttle not avoid rate limiting
+<TokenA>:<amount> <TokenB>:<amount> ... <TokenZ>:<amount>
+```
+The amount is in token units e.g `SOL:1` means 1 SOL and `ETH:2` mean 2 ETH. The distribution is set using token units instead of token price to keep rebalancer  independent of price fluctuations but only after a liquidation transaction has been executed.
+
+Example: Distribution where we expect the liquidator wallet to be holding 500 USDT, 10 SOL and 1 ETH. As mentioned above, the USDC target is ignored as it is the base token we trade to/from.
+```
+# - TARGETS=USDC:1000 USDT:500 SOL:10 ETH:1
+```
+
+### Rebalance padding
+The env variable `REBALANCE_PADDING` is introduced in `docker-compose.yaml` to avoid unnecessary padding. If the targeted SOL amount is 10 and `REBALANCE_PADDING` is 0.2, we will only swap USDC for SOL when SOL holding is under 8 SOL = (10 SOL * (1 - REBALANCE_PADDING )) and only sell when SOL holding is over 12 SOL = (10 SOL * (1 + REBALANCE_PADDING)). Default padding is set to 0.2
+
+### Target specific markets
+BY default the liquidator runs against all solend created pools e.g main, TURBO SOL, dog, etc... If you want to target specific markets, you just need to specify the MARKETS param in `docker-compose.yaml` separated by commas. The following definition will configures the liquidator to only run against the main and coin98 pools.
+
+```
+MARKET=4UpD2fh7xH3VP9QQaXtsS1YY3bxzWhtfpks7FatyKvdY,7tiNvRHSjYDfc6usrWnSNPyuN68xQfKs1ZG2oqtR5F46
+```
+
+### Tweak throttling
+If you are getting rate limited by your RPC provider, you can use the following env variable to avoid getting rate limited. If you have a custom RPC provider, you will be fine without any throttling.
+```
+  - THROTTLE=1000 # Throttle not avoid rate limiting. In milliseconds
 ```
 
 ## Support
