@@ -3,6 +3,7 @@
 
 # production
 /build
+.env
 
 # misc
 id.json
