@@ -1,14 +1,17 @@
-import fs from 'fs';
+import fs from 'fs'
 
 export function readSecret(secretName) {
-  try {
-    return fs.readFileSync(`/run/secrets/${secretName}`, 'utf8');
-  } catch (err) {
-    if (err.code !== 'ENOENT') {
-      console.error(`An error occurred while trying to read the secret: ${secretName}. Err: ${err}`);
-    } else {
-      console.debug(`Could not find the secret,: ${secretName}. Err: ${err}`);
-    }
-    return '';
-  }
+	try {
+		const path = process.env.SECRET_PATH || `/run/secrets/${secretName}`
+		return fs.readFileSync(path, 'utf8')
+	} catch (err) {
+		if (err.code !== 'ENOENT') {
+			console.error(
+				`An error occurred while trying to read the secret: ${secretName}. Err: ${err}`
+			)
+		} else {
+			console.debug(`Could not find the secret,: ${secretName}. Err: ${err}`)
+		}
+		return ''
+	}
 }
