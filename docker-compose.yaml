@@ -21,8 +21,8 @@ services:
       # USDC is the base currency that every other token will swap against so besure to allocate an access amount of USDC
       # Note: the amount is in token unit so ETH:2 means we'll always rebalance to have 2 ETH
       # - TARGETS=USDC:100 USDT:5 scnSOL:0.5 SOL:0.5
-      # For targeting specific markets. All markets can be found in https://api.solend.fi/v1/markets/configs?scope=all
-      # - MARKET=4UpD2fh7xH3VP9QQaXtsS1YY3bxzWhtfpks7FatyKvdY,7tiNvRHSjYDfc6usrWnSNPyuN68xQfKs1ZG2oqtR5F46,GktVYgkstojYd8nVXGXKJHi7SstvgZ6pkQqQhUPD7y7Q
+      # For targeting specific markets. All markets' address can be found in https://api.solend.fi/v1/markets/configs?scope=all
+      - MARKET=4UpD2fh7xH3VP9QQaXtsS1YY3bxzWhtfpks7FatyKvdY,7tiNvRHSjYDfc6usrWnSNPyuN68xQfKs1ZG2oqtR5F46,GktVYgkstojYd8nVXGXKJHi7SstvgZ6pkQqQhUPD7y7Q
     secrets:
       - keypair # secret to encrypte wallet details in container
 
