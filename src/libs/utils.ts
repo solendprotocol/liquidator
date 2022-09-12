@@ -232,36 +232,3 @@ export function getWalletDistTarget() {
 
   return target;
 }
-
-export const findAssociatedTokenAddress = async (
-  walletAddress: PublicKey,
-  tokenMintAddress: PublicKey
-) => {
-  return (
-    await PublicKey.findProgramAddress(
-      [walletAddress.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), tokenMintAddress.toBuffer()],
-      ASSOCIATED_TOKEN_PROGRAM_ID
-    )
-  )[0]
-}
-
-export const getWalletBalance = async (
-  connection: Connection,
-  mint: PublicKey,
-  walletAddress: PublicKey
-): Promise<number> => {
-  const userAta = await findAssociatedTokenAddress(walletAddress, mint)
-
-  return await connection
-    .getTokenAccountBalance(userAta)
-    .then((tokenAmount) => {
-      if (tokenAmount?.value?.uiAmount) {
-        return tokenAmount.value.uiAmount
-      } else {
-        return 0
-      }
-    })
-    .catch((error) => {
-      return 0
-    })
-}
