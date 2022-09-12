@@ -61,8 +61,6 @@ export const unwrapNazareLp = async (
   mint: PublicKey,
   lpAmount: number
 ) => {
-  console.log("unwrapNazare called ", mint.toString())
-
   const program = NazareProgram(connection, Wallet as any)
   const vaultData = await getNazareVaultData(program, mint)
   const vaultId = {
@@ -116,7 +114,7 @@ export const unwrapNazareLp = async (
       )
     )
   }
-  console.log(lpAmount)
+
   tx.add(
     await ggClient.withdrawIx({
       lpAmount: new BN(lpAmount),
