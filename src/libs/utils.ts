@@ -231,4 +231,4 @@ export function getWalletDistTarget() {
   }
 
   return target;
-} 
+}
