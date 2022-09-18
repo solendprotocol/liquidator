@@ -1,5 +1,5 @@
 import { Account, Connection, PublicKey, Transaction } from "@solana/web3.js";
-import { GGoldcaSDK } from "./gg-sdk"
+import { GGoldcaSDK, VaultId } from "ggoldca-sdk"
 import { AnchorProvider } from '@project-serum/anchor/dist/cjs/provider'
 import { BN, Program, Wallet } from '@project-serum/anchor'
 import { Ggoldca, IDL } from './ggoldca'
@@ -7,7 +7,6 @@ import {
   createAssociatedTokenAccountInstruction,
   getAssociatedTokenAddress,
 } from '@solana/spl-token-v2'
-import { VaultId } from "./gg-sdk/pda";
 
 export const NAZARE_PROGRAM_ID = new PublicKey("NAZAREQQuCnkV8CpkGZaoB6ccmvikM8uRr4GKPWwmPT")
 
