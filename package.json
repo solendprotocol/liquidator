@@ -23,7 +23,7 @@
     "@pythnetwork/client": "^2.0.0",
     "@solana/spl-token": "^0.1.4",
     "@solana/spl-token-registry": "^0.2.114",
-    "@solana/web3.js": "1.33.0",
+    "@solana/web3.js": "^1.53.0",
     "@switchboard-xyz/sbv2-lite": "^0.1.0",
     "@switchboard-xyz/switchboard-api": "^0.2.160",
     "bignumber.js": "^9.0.1",
