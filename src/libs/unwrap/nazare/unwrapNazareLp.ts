@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax */
 import {
   Account, Connection, PublicKey, Transaction,
 } from '@solana/web3.js';
@@ -8,6 +9,7 @@ import {
   createAssociatedTokenAccountInstruction,
   getAssociatedTokenAddress,
 } from '@solana/spl-token-v2';
+import { getWalletBalance } from 'libs/utils';
 import { Ggoldca, IDL } from './ggoldca';
 
 export const NAZARE_PROGRAM_ID = new PublicKey('NAZAREQQuCnkV8CpkGZaoB6ccmvikM8uRr4GKPWwmPT');
@@ -36,6 +38,21 @@ async function getNazareVaultData(program: Program<Ggoldca>, mint: PublicKey): P
   return result;
 }
 
+export const checkAndUnwrapNLPTokens = async (
+  connection: Connection,
+  payer: Account,
+) => {
+  // Nazare LP tokens 
+  const nazareMints = await getNazareTokenMints(connection);
+  for (const mint of nazareMints) {
+    // check if wallet has Nazare LP tokens
+    const tokenAmount = await getWalletBalance(connection, mint, payer.publicKey);
+    if (tokenAmount) {
+      await unwrapNazareLp(connection, payer, mint, tokenAmount);
+    }
+  }
+};
+
 export const getNazareTokenMints = async (
   connection: Connection,
 ) => {
@@ -60,6 +77,7 @@ export const unwrapNazareLp = async (
   mint: PublicKey,
   lpAmount: number,
 ) => {
+  console.log(`unstaking ${lpAmount} Nazare ${mint}`);
   const program = NazareProgram(connection, Wallet as any);
   const vaultData = await getNazareVaultData(program, mint);
   const vaultId = {
@@ -128,4 +146,6 @@ export const unwrapNazareLp = async (
 
   const txHash = await connection.sendRawTransaction(tx.serialize(), { skipPreflight: false });
   await connection.confirmTransaction(txHash, 'confirmed');
+
+  console.log(`successfully unstaked ${lpAmount} Nazare ${mint}: ${txHash}`);
 };

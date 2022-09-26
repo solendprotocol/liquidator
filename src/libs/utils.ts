@@ -217,6 +217,34 @@ export async function getWalletTokenData(connection: Connection, market: MarketC
   }
 }
 
+export const findAssociatedTokenAddress = async (
+  walletAddress: PublicKey,
+  tokenMintAddress: PublicKey,
+) => (
+  await PublicKey.findProgramAddress(
+    [walletAddress.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), tokenMintAddress.toBuffer()],
+    ASSOCIATED_TOKEN_PROGRAM_ID,
+  )
+)[0];
+
+export const getWalletBalance = async (
+  connection: Connection,
+  mint: PublicKey,
+  walletAddress: PublicKey,
+): Promise<number> => {
+  const userAta = await findAssociatedTokenAddress(walletAddress, mint);
+
+  return connection
+    .getTokenAccountBalance(userAta)
+    .then((tokenAmount) => {
+      if (parseFloat(tokenAmount?.value?.amount)) {
+        return parseFloat(tokenAmount.value.amount);
+      }
+      return 0;
+    })
+    .catch((error) => 0);
+};
+
 export function getWalletDistTarget() {
   const target: TokenCount[] = [];
   const targetRaw = process.env.TARGETS || '';
