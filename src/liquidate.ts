@@ -17,8 +17,8 @@ import { readSecret } from 'libs/secret';
 import { liquidateAndRedeem } from 'libs/actions/liquidateAndRedeem';
 import { rebalanceWallet } from 'libs/rebalanceWallet';
 import { Jupiter } from '@jup-ag/core';
+import { unwrapTokens } from 'libs/unwrap/unwrapToken';
 import { getMarkets } from './config';
-import { unwrapToken } from 'libs/swaps/unwrapToken';
 
 dotenv.config();
 
@@ -134,9 +134,8 @@ async function runLiquidator() {
         }
       }
 
-      // unwrap tokens that require it
-      await unwrapToken(connection, payer)
-      
+      await unwrapTokens(connection, payer);
+
       if (target.length > 0) {
         const walletBalances = await getWalletBalances(connection, payer, tokensOracle, market);
         await rebalanceWallet(connection, payer, jupiter, tokensOracle, walletBalances, target);
