@@ -18,6 +18,8 @@
   ],
   "license": "ISC",
   "dependencies": {
+    "@hubbleprotocol/hubble-config": "^1.0.127",
+    "@hubbleprotocol/kamino-sdk": "^1.0.131",
     "@jup-ag/core": "=1.0.0-beta.22",
     "@project-serum/anchor": "^0.25.0",
     "@project-serum/sol-wallet-adapter": "^0.2.0",
