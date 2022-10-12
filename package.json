@@ -25,6 +25,7 @@
     "@project-serum/sol-wallet-adapter": "^0.2.0",
     "@pythnetwork/client": "^2.0.0",
     "@solana/buffer-layout": "^4.0.0",
+    "@solana/spl-token-v2": "npm:@solana/spl-token@^0.2.0",
     "@solana/spl-token": "^0.1.4",
     "@solana/spl-token-registry": "^0.2.114",
     "@solana/web3.js": "^1.53.0",
