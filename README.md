@@ -1,3 +1,5 @@
+# Update: This repo has been archived and the liquidator has been moved to https://github.com/solendprotocol/public.
+
 # Solend-liquidator-bot
 
 Table of contents
